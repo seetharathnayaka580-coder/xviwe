@@ -386,20 +386,71 @@ export const api = {
         if (cmd === '/start' || cmd.startsWith('/start') || cmd === '/help') {
           return {
             success: true,
-            response: 'Welcome! Send me your vless code, config link, or UUID to check your account status.',
+            response: 'Welcome! Send me your vless code, config link, or UUID to check your account status.\n\nType /status to view Server Online Status & Live Resource Usage.',
           };
-        } else if (cmd === '/status') {
+        } else if (cmd === '/status' || cmd.toLowerCase() === 'status' || cmd === '/server' || cmd.toLowerCase() === 'server') {
           const st = getMockServerStatus();
+          const memCurrent = st.mem.current;
+          const memTotal = st.mem.total;
+          const memPercent = Math.min(100, Math.max(0, (memCurrent / memTotal) * 100));
+          const diskCurrent = st.disk.current;
+          const diskTotal = st.disk.total;
+          const diskPercent = Math.min(100, Math.max(0, (diskCurrent / diskTotal) * 100));
+          const cpuPercent = st.cpu || 28.2;
+
+          const makeBar = (pct: number) => {
+            const p = Math.min(100, Math.max(0, Math.round(pct)));
+            const filled = Math.min(10, Math.max(0, Math.round(p / 10)));
+            const empty = 10 - filled;
+            return '🟩'.repeat(filled) + '⬜️'.repeat(empty) + ` ${p}%`;
+          };
+
+          const lastUpdatedStr = new Date().toLocaleString('en-US', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true,
+          });
+
           return {
             success: true,
             response:
-              `🟢 *3x-UI Server Health: ONLINE*\n\n` +
-              `• *CPU Usage:* ${st.cpu}%\n` +
-              `• *Memory:* ${(st.mem.current / 1024 / 1024 / 1024).toFixed(2)} GB / ${(st.mem.total / 1024 / 1024 / 1024).toFixed(2)} GB\n` +
-              `• *Disk:* ${(st.disk.current / 1024 / 1024 / 1024).toFixed(2)} GB / ${(st.disk.total / 1024 / 1024 / 1024).toFixed(2)} GB\n` +
-              `• *Uptime:* ${formatUptime(st.uptime)}\n` +
-              `• *Xray Version:* ${st.xray.version} (${st.xray.state})\n` +
-              `• *Active TCP/UDP:* ${st.tcpCount} / ${st.udpCount}`,
+`🖥 SERVER ONLINE STATUS & USAGE¹
+
+💎 Node:	VIP Server (sudda.store)
+🏠 Region:	🇸🇬 Singapore
+🌐 Public IP:	173.234.14.99
+
+⚡️ SERVER HEALTH & STATUS
+Server State:	🟢 ONLINE
+Xray Core:	🟢 Running (v${st.xray?.version || '25.1.30'})
+Uptime:	${formatUptime(st.uptime)}
+Active Connections:	${st.tcpCount.toLocaleString()} TCP · ${st.udpCount.toLocaleString()} UDP
+
+📊 RESOURCE USAGE VIEW
+🧠 CPU Usage (4 Cores @ 2.65 GHz)
+${makeBar(cpuPercent)}
+Load Average:	1.49 · 1.14 · 1.12
+
+💾 RAM Memory
+${makeBar(memPercent)}
+Used:	${(memCurrent / (1024 * 1024 * 1024)).toFixed(2)} GB / ${(memTotal / (1024 * 1024 * 1024)).toFixed(2)} GB
+
+💽 Disk Storage
+${makeBar(diskPercent)}
+Used:	${(diskCurrent / (1024 * 1024 * 1024)).toFixed(2)} GB / ${(diskTotal / (1024 * 1024 * 1024)).toFixed(2)} GB
+
+🚀 REAL-TIME NETWORK SPEED & TRAFFIC
+⬆️ Upload Speed:	8.26 MB/s
+⬇️ Download Speed:	8.46 MB/s
+📦 Total Sent:	12.69 TB
+📥 Total Received:	12.89 TB
+
+Last Updated:
+${lastUpdatedStr}`,
           };
         } else if (cmd === '/stats') {
           const inbounds = getStoredInbounds();
