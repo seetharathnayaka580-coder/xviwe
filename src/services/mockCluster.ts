@@ -384,19 +384,34 @@ export function getMockServerStatus(): ServerStatus {
 
 export function lookupMockClient(query: string): { success: boolean; client?: ClientLookupResult; message?: string } {
   const inbounds = getStoredInbounds();
-  const q = query.trim().toLowerCase();
+  let q = query.trim().toLowerCase();
+  const prefixes = ['/check ', '/find ', '/uuid ', '/user ', '/client ', 'check ', 'find ', 'uuid ', 'user '];
+  for (const p of prefixes) {
+    if (q.startsWith(p)) {
+      q = q.slice(p.length).trim();
+      break;
+    }
+  }
 
   for (const ib of inbounds) {
     try {
       const settings = typeof ib.settings === 'string' ? JSON.parse(ib.settings) : ib.settings;
       if (Array.isArray(settings.clients)) {
-        const found = settings.clients.find(
+        let found = settings.clients.find(
           (c: any) =>
             (c.id && c.id.toLowerCase() === q) ||
-            (c.password && c.password.toLowerCase() === q) ||
             (c.email && c.email.toLowerCase() === q) ||
-            (c.email && c.email.toLowerCase().includes(q))
+            (c.subId && c.subId.toLowerCase() === q) ||
+            (c.password && c.password.toLowerCase() === q)
         );
+        if (!found) {
+          found = settings.clients.find(
+            (c: any) =>
+              (c.email && c.email.toLowerCase().includes(q)) ||
+              (q.length >= 3 && c.email && q.includes(c.email.toLowerCase())) ||
+              (q.length >= 8 && c.id && c.id.toLowerCase().includes(q))
+          );
+        }
 
         if (found) {
           const stat = ib.clientStats?.find((s) => s.email === found.email);

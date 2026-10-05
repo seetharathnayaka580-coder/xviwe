@@ -1002,10 +1002,14 @@ async function generateBotResponse(text: string): Promise<string> {
     } catch (e) {}
   }
 
-  // Lookup client by raw query, link, or UUID
+  // Lookup client by raw query, link, UUID, or Email name
   let rawQuery = cmd;
-  if (cmd.startsWith('/check ')) {
-    rawQuery = cmd.replace('/check ', '').trim();
+  const prefixes = ['/check ', '/find ', '/uuid ', '/user ', '/client ', 'check ', 'find ', 'uuid ', 'user '];
+  for (const p of prefixes) {
+    if (rawQuery.toLowerCase().startsWith(p)) {
+      rawQuery = rawQuery.slice(p.length).trim();
+      break;
+    }
   }
   const extracted = extractQueryOrUuid(rawQuery).toLowerCase();
 
@@ -1023,13 +1027,23 @@ async function generateBotResponse(text: string): Promise<string> {
           try {
             const st = typeof ib.settings === 'string' ? JSON.parse(ib.settings) : ib.settings;
             if (Array.isArray(st?.clients)) {
-              const match = st.clients.find(
+              // 1. Exact match on UUID or Email
+              let match = st.clients.find(
                 (c: any) =>
                   (c.id && c.id.toLowerCase() === extracted) ||
-                  (c.password && c.password.toLowerCase() === extracted) ||
                   (c.email && c.email.toLowerCase() === extracted) ||
-                  (c.email && c.email.toLowerCase().includes(extracted))
+                  (c.subId && c.subId.toLowerCase() === extracted) ||
+                  (c.password && c.password.toLowerCase() === extracted)
               );
+              // 2. Partial / substring match on Email or UUID
+              if (!match) {
+                match = st.clients.find(
+                  (c: any) =>
+                    (c.email && c.email.toLowerCase().includes(extracted)) ||
+                    (extracted.length >= 3 && c.email && extracted.includes(c.email.toLowerCase())) ||
+                    (extracted.length >= 8 && c.id && c.id.toLowerCase().includes(extracted))
+                );
+              }
               if (match) {
                 foundClient = match;
                 foundInbound = ib;
@@ -1048,13 +1062,21 @@ async function generateBotResponse(text: string): Promise<string> {
     for (const ib of mockInbounds) {
       try {
         const st = typeof ib.settings === 'string' ? JSON.parse(ib.settings) : ib.settings;
-        const match = st.clients?.find(
+        let match = st.clients?.find(
           (c: any) =>
             (c.id && c.id.toLowerCase() === extracted) ||
-            (c.password && c.password.toLowerCase() === extracted) ||
             (c.email && c.email.toLowerCase() === extracted) ||
-            (c.email && c.email.toLowerCase().includes(extracted))
+            (c.subId && c.subId.toLowerCase() === extracted) ||
+            (c.password && c.password.toLowerCase() === extracted)
         );
+        if (!match) {
+          match = st.clients?.find(
+            (c: any) =>
+              (c.email && c.email.toLowerCase().includes(extracted)) ||
+              (extracted.length >= 3 && c.email && extracted.includes(c.email.toLowerCase())) ||
+              (extracted.length >= 8 && c.id && c.id.toLowerCase().includes(extracted))
+          );
+        }
         if (match) {
           foundClient = match;
           foundInbound = ib;
@@ -1065,7 +1087,41 @@ async function generateBotResponse(text: string): Promise<string> {
     }
   }
 
-function formatVpnOverviewDashboard(foundClient: any, foundInbound: any, clientStat: any): string {
+// Country flag helper for GeoIP
+function getCountryFlag(countryCode: string): string {
+  if (!countryCode || countryCode.length !== 2) return '🌐';
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map((char) => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+}
+
+let cachedServerRegion = '🇸🇬 Singapore';
+let lastRegionFetch = 0;
+
+async function fetchRealServerRegion(hostname = 'sudda.store'): Promise<string> {
+  const now = Date.now();
+  if (cachedServerRegion && now - lastRegionFetch < 3600 * 1000) {
+    return cachedServerRegion;
+  }
+
+  try {
+    const cleanHost = hostname.replace(/^https?:\/\//, '').split(/[:/]/)[0];
+    const res = await fetch(`http://ip-api.com/json/${cleanHost}?fields=status,country,countryCode`);
+    const data: any = await res.json().catch(() => null);
+    if (data && data.status === 'success' && data.country) {
+      const flag = getCountryFlag(data.countryCode || 'SG');
+      cachedServerRegion = `${flag} ${data.country}`;
+      lastRegionFetch = now;
+      return cachedServerRegion;
+    }
+  } catch (e) {}
+
+  return cachedServerRegion || '🇸🇬 Singapore';
+}
+
+async function formatVpnOverviewDashboard(foundClient: any, foundInbound: any, clientStat: any): Promise<string> {
   const upBytes = clientStat?.up || 0;
   const downBytes = clientStat?.down || 0;
   const totalUsedBytes = upBytes + downBytes;
@@ -1074,6 +1130,8 @@ function formatVpnOverviewDashboard(foundClient: any, foundInbound: any, clientS
 
   const isExpired = foundClient.expiryTime > 0 && Date.now() > foundClient.expiryTime;
   const isEnabled = foundClient.enable !== false;
+
+  const realRegion = await fetchRealServerRegion(config.panelUrl || 'sudda.store');
 
   const toGB = (bytes: number) => (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
   const formatQuota = (bytes: number) => {
@@ -1149,7 +1207,7 @@ function formatVpnOverviewDashboard(foundClient: any, foundInbound: any, clientS
 
 ⭐️ Client:	${foundClient.email || 'Client'}
 💎 Server:	VIP
-🏠 Region:	VIP
+🏠 Region:	${realRegion}
 
 🌩 CONNECTION STATUS
 Account:	${isExpired ? '🔴 Expired' : isEnabled ? '🟢 Active' : '🟡 Disabled'}
@@ -1181,13 +1239,13 @@ ${lastUpdatedStr}`
 }
 
   if (foundClient && foundInbound) {
-    return formatVpnOverviewDashboard(foundClient, foundInbound, clientStat);
+    return await formatVpnOverviewDashboard(foundClient, foundInbound, clientStat);
   }
 
   return (
     `❌ *Account Not Found*\n\n` +
     `No active subscription was found matching:\n\`${cmd}\`\n\n` +
-    `Send me your vless code, config link, or UUID to check your account status.`
+    `Send me your UUID, Email / Remark name, or VPN config link to view your VPN Overview Dashboard.`
   );
 }
 

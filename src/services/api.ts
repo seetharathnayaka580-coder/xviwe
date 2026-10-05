@@ -495,7 +495,7 @@ export const api = {
 
 ⭐️ Client:	${c.email}
 💎 Server:	VIP
-🏠 Region:	VIP
+🏠 Region:	🇸🇬 Singapore
 
 🌩 CONNECTION STATUS
 Account:	${c.isExpired ? '🔴 Expired' : c.enable ? '🟢 Active' : '🟡 Disabled'}

@@ -124,6 +124,39 @@ function jsonResponse(data: any, status = 200) {
   });
 }
 
+function getCountryFlag(countryCode: string): string {
+  if (!countryCode || countryCode.length !== 2) return '🌐';
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map((char) => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+}
+
+let cachedServerRegion = '🇸🇬 Singapore';
+let lastRegionFetch = 0;
+
+async function fetchRealServerRegion(hostname = 'sudda.store'): Promise<string> {
+  const now = Date.now();
+  if (cachedServerRegion && now - lastRegionFetch < 3600 * 1000) {
+    return cachedServerRegion;
+  }
+
+  try {
+    const cleanHost = hostname.replace(/^https?:\/\//, '').split(/[:/]/)[0];
+    const res = await fetch(`http://ip-api.com/json/${cleanHost}?fields=status,country,countryCode`);
+    const data: any = await res.json().catch(() => null);
+    if (data && data.status === 'success' && data.country) {
+      const flag = getCountryFlag(data.countryCode || 'SG');
+      cachedServerRegion = `${flag} ${data.country}`;
+      lastRegionFetch = now;
+      return cachedServerRegion;
+    }
+  } catch (e) {}
+
+  return cachedServerRegion || '🇸🇬 Singapore';
+}
+
 function extractQueryOrUuid(input: string): string {
   const trimmed = input.trim();
   const urlMatch = trimmed.match(/^(?:vless|trojan|ss):\/\/([^@/?#]+)/i);
@@ -197,10 +230,14 @@ async function generateEdgeBotResponse(text: string, env?: Env): Promise<string>
     }
   }
 
-  // Lookup client by link, uuid, or query
+  // Lookup client by raw query, link, UUID, or Email name
   let rawQuery = cmd;
-  if (cmd.startsWith('/check ')) {
-    rawQuery = cmd.replace('/check ', '').trim();
+  const prefixes = ['/check ', '/find ', '/uuid ', '/user ', '/client ', 'check ', 'find ', 'uuid ', 'user '];
+  for (const p of prefixes) {
+    if (rawQuery.toLowerCase().startsWith(p)) {
+      rawQuery = rawQuery.slice(p.length).trim();
+      break;
+    }
   }
   const extracted = extractQueryOrUuid(rawQuery).toLowerCase();
 
@@ -210,13 +247,21 @@ async function generateEdgeBotResponse(text: string, env?: Env): Promise<string>
       try {
         const st = typeof ib.settings === 'string' ? JSON.parse(ib.settings) : ib.settings;
         if (Array.isArray(st?.clients)) {
-          const found = st.clients.find(
+          let found = st.clients.find(
             (c: any) =>
               (c.id && c.id.toLowerCase() === extracted) ||
-              (c.password && c.password.toLowerCase() === extracted) ||
               (c.email && c.email.toLowerCase() === extracted) ||
-              (c.email && c.email.toLowerCase().includes(extracted))
+              (c.subId && c.subId.toLowerCase() === extracted) ||
+              (c.password && c.password.toLowerCase() === extracted)
           );
+          if (!found) {
+            found = st.clients.find(
+              (c: any) =>
+                (c.email && c.email.toLowerCase().includes(extracted)) ||
+                (extracted.length >= 3 && c.email && extracted.includes(c.email.toLowerCase())) ||
+                (extracted.length >= 8 && c.id && c.id.toLowerCase().includes(extracted))
+            );
+          }
           if (found) {
             const stat = ib.clientStats?.find((s: any) => s.email === found.email);
             const upBytes = stat?.up || 0;
@@ -297,12 +342,14 @@ async function generateEdgeBotResponse(text: string, env?: Env): Promise<string>
               hour12: true,
             });
 
+            const realRegion = await fetchRealServerRegion(currentConfig.panelUrl || 'sudda.store');
+
             return (
 `💀 VPN OVERVIEW DASHBOARD¹
 
 ⭐️ Client:	${found.email || 'Client'}
 💎 Server:	VIP
-🏠 Region:	VIP
+🏠 Region:	${realRegion}
 
 🌩 CONNECTION STATUS
 Account:	${isExpired ? '🔴 Expired' : isEnabled ? '🟢 Active' : '🟡 Disabled'}
@@ -340,7 +387,7 @@ ${lastUpdatedStr}`
   return (
     `❌ *Account Not Found*\n\n` +
     `No active subscription was found matching:\n\`${cmd}\`\n\n` +
-    `Send me your vless code, config link, or UUID to check your account status.`
+    `Send me your UUID, Email / Remark name, or VPN config link to view your VPN Overview Dashboard.`
   );
 }
 
