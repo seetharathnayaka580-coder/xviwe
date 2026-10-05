@@ -108,7 +108,8 @@ export interface BotInfo {
 export interface AppConfig {
   panelUrl: string;
   panelUser: string;
-  hasPassword: boolean;
-  botTokenMasked: string;
+  hasPassword?: boolean;
+  botTokenMasked?: string;
+  botToken?: string;
   adminChatId: string;
 }
