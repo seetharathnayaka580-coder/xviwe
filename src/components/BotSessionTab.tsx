@@ -351,11 +351,12 @@ export function BotSessionTab({ onRefresh }: Props) {
             <span className="text-slate-500 shrink-0">Try:</span>
             {[
               { label: '/start', cmd: '/start' },
+              { label: '/status', cmd: '/status' },
+              { label: '/speed', cmd: '/speed' },
               { label: 'Name: Malsha', cmd: 'Malsha' },
               { label: 'Name: Jash', cmd: 'Jash' },
               { label: 'UUID: Malsha', cmd: '85f195b0-142b-4304-9f2b-1037b5b3e746' },
               { label: 'UUID: Jash', cmd: '583696f2-aef8-44e6-8c06-257941aa8aa7' },
-              { label: '/status', cmd: '/status' },
             ].map((preset, idx) => (
               <button
                 key={idx}

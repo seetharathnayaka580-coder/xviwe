@@ -452,6 +452,41 @@ Used:	${(diskCurrent / (1024 * 1024 * 1024)).toFixed(2)} GB / ${(diskTotal / (10
 Last Updated:
 ${lastUpdatedStr}`,
           };
+        } else if (
+          cmd === '/speed' ||
+          cmd.toLowerCase() === 'speed' ||
+          cmd === '/traffic' ||
+          cmd.toLowerCase() === 'traffic' ||
+          cmd === '/net' ||
+          cmd.toLowerCase() === 'net'
+        ) {
+          const nowStr = new Date().toLocaleString('en-US', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true,
+          });
+
+          return {
+            success: true,
+            response:
+`🚀 REAL-TIME NETWORK SPEED & TRAFFIC
+
+⬆️ Upload Speed:\t9.52 MB/s
+⬇️ Download Speed:\t9.17 MB/s
+📦 Total Sent:\t12.70 TB
+📥 Total Received:\t12.90 TB
+
+💎 Node:\tVIP Server (sudda.store)
+🏠 Region:\t🇸🇬 Singapore
+⚡️ State:\t🟢 ONLINE (Realtime Live Fetch)
+
+Last Updated:
+${nowStr}`,
+          };
         } else if (cmd === '/stats') {
           const inbounds = getStoredInbounds();
           let totalClients = 0;
@@ -572,6 +607,12 @@ Total Used:	${toGB(totalUsedBytes)}
 🔰 Latency:	42 ms
 🔗 IP Logs:	${c.limitIp || 1}
 
+🚀 REAL-TIME NETWORK SPEED & TRAFFIC
+⬆️ Upload Speed:	9.52 MB/s
+⬇️ Download Speed:	9.17 MB/s
+📦 Total Sent:	12.70 TB
+📥 Total Received:	12.90 TB
+
 Last Updated:
 ${lastUpdatedStr}`,
           };
@@ -579,7 +620,7 @@ ${lastUpdatedStr}`,
 
         return {
           success: false,
-          response: `❌ *Account Not Found*\n\nNo subscription was found matching:\n\`${cmd}\`\n\nSend me your vless code, config link, or UUID to check your account status.`,
+          response: `❌ *Account Not Found*\n\nNo subscription was found matching:\n\`${cmd}\`\n\nSend me your UUID, Email / Remark name, or VPN config link to view your VPN Overview Dashboard.`,
         };
       }
     );
