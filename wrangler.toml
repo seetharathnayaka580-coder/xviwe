@@ -1,0 +1,10 @@
+name = "x-viwe-suite"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "./dist"
+
+[vars]
+ADMIN_CHAT_ID = "5966867969"
+BOT_TOKEN = "8861055380:AAHr5xwb2vandKcCH05IGFtaEN2wGmpTFec"
+PANEL_PASS = "sudhbuYH45u"
+PANEL_URL = "https://sudda.store:7575/yhSuh09ZWZ0RTNT"
+PANEL_USER = "sudhbuYH45u"
