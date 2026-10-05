@@ -59,7 +59,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-white">
+    <div className="min-h-screen bg-[#050811] cyber-grid-bg text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-white">
       {/* Top Bar Contract adhering navbar */}
       <Navbar
         activeTab={activeTab}
@@ -110,10 +110,13 @@ export default function App() {
       )}
 
       {/* Quiet Footer */}
-      <footer className="border-t border-slate-900 py-6 px-4 text-center text-xs text-slate-600 font-mono">
+      <footer className="border-t border-cyan-500/10 py-6 px-4 text-center text-xs text-slate-500 font-mono">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span>X-VIWE SUITE · 3x-UI & Cloudflare Edge Controller</span>
-          <span className="text-slate-500">Node: sudda.store:7575/yhSuh09ZWZ0RTNT</span>
+          <span className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>X-VIWE CYBER COMMAND · 3x-UI & Cloudflare Edge Controller</span>
+          </span>
+          <span className="text-slate-400">Gateway: sudda.store:7575/yhSuh09ZWZ0RTNT</span>
         </div>
       </footer>
     </div>

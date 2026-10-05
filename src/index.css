@@ -8,7 +8,7 @@
 
   body {
     font-family: var(--font-sans);
-    background-color: #070a12;
+    background-color: #050811;
     color: #e2e8f0;
     overflow-x: hidden;
   }
@@ -17,6 +17,32 @@
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* Cyber Tactical Grid Background */
+.cyber-grid-bg {
+  background-image: 
+    linear-gradient(to right, rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.cyber-dots-bg {
+  background-image: radial-gradient(rgba(6, 182, 212, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Cyber Card with corner brackets & stealth border */
+.cyber-card {
+  position: relative;
+  background: linear-gradient(180deg, #0b111e 0%, #060a14 100%);
+  border: 1px solid rgba(30, 41, 59, 0.9);
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+}
+
+.cyber-card-glow {
+  border-color: rgba(6, 182, 212, 0.35);
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.8), 0 0 20px -4px rgba(6, 182, 212, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
 /* Tactile button system: Real button feel, subtle bevel highlight, smooth compression */
@@ -51,6 +77,19 @@
 .btn-real-primary:hover:not(:disabled) {
   background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 50%, #0284c7 100%);
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.45), 0 4px 12px -1px rgba(2, 132, 199, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.btn-real-cyber {
+  background: linear-gradient(180deg, #083344 0%, #082435 100%);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.5);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 0 12px -2px rgba(6, 182, 212, 0.3), 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+.btn-real-cyber:hover:not(:disabled) {
+  background: linear-gradient(180deg, #0e4e66 0%, #083344 100%);
+  color: #a5f3fc;
+  border-color: rgba(34, 211, 238, 0.8);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 0 16px rgba(6, 182, 212, 0.5);
 }
 
 .btn-real-secondary {
@@ -108,7 +147,7 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #070a12;
+  background: #050811;
 }
 ::-webkit-scrollbar-thumb {
   background: #1e293b;
