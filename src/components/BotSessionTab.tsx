@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   Bot, Send, Terminal, Copy, Check, ExternalLink, ShieldCheck, 
-  Sparkles, Code2, Key, Radio, AlertCircle, RefreshCw, Layers, CheckCircle2
+  Sparkles, Code2, Key, Radio, AlertCircle, RefreshCw, Layers, CheckCircle2,
+  Zap, Globe, Power
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -15,12 +16,16 @@ export function BotSessionTab({ onRefresh }: Props) {
   const [testMsgStatus, setTestMsgStatus] = useState<string | null>(null);
   const [sendingAlert, setSendingAlert] = useState(false);
 
+  // Webhook and Polling Status
+  const [webhookInfo, setWebhookInfo] = useState<any>(null);
+  const [updatingWebhook, setUpdatingWebhook] = useState(false);
+
   // Bot Simulator
   const [commandInput, setCommandInput] = useState('/start');
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot'; text: string; time: string }>>([
     {
       sender: 'bot',
-      text: "👋 Welcome to X-VIWE SUITE VPN Monitor Bot!\n\nSend /status to check server health, /stats for network volume, or send your UUID to inspect your VPN subscription.",
+      text: 'Welcome! Send me your vless code, config link, or UUID to check your account status.',
       time: '12:00:00',
     },
   ]);
@@ -29,16 +34,15 @@ export function BotSessionTab({ onRefresh }: Props) {
   // Cloudflare Worker code state
   const [workerScript, setWorkerScript] = useState<string>('');
   const [copiedWorker, setCopiedWorker] = useState(false);
-  const [workerDomain, setWorkerDomain] = useState('xviwe-bot.your-subdomain.workers.dev');
+  const [workerDomain, setWorkerDomain] = useState('xviwe.nvderttf56.pp.ua');
   const [copiedWebhook, setCopiedWebhook] = useState(false);
 
   const botToken = '8861055380:AAHr5xwb2vandKcCH05IGFtaEN2wGmpTFec';
   const adminChatId = '5966867969';
   const panelUrl = 'https://sudda.store:7575/yhSuh09ZWZ0RTNT';
   const panelUser = 'sudhbuYH45u';
-  const panelPass = 'sudhbuYH45u';
 
-  useEffect(() => {
+  const loadBotData = () => {
     setLoadingBot(true);
     api.getBotInfo()
       .then((res) => {
@@ -48,9 +52,21 @@ export function BotSessionTab({ onRefresh }: Props) {
       })
       .finally(() => setLoadingBot(false));
 
+    api.getWebhookStatus()
+      .then((res) => {
+        if (res.ok && res.result) {
+          setWebhookInfo(res.result);
+        }
+      })
+      .catch(console.error);
+
     api.getWorkerScript()
       .then((code) => setWorkerScript(code))
       .catch(console.error);
+  };
+
+  useEffect(() => {
+    loadBotData();
   }, []);
 
   const handleSendCommand = async (textToSend?: string) => {
@@ -109,19 +125,59 @@ export function BotSessionTab({ onRefresh }: Props) {
     }
   };
 
+  const handleSetWebhook = async () => {
+    setUpdatingWebhook(true);
+    try {
+      const cleanDomain = workerDomain.trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+      const fullWebhookUrl = `https://${cleanDomain}/api/bot/webhook`;
+      const res = await api.setWebhook(fullWebhookUrl);
+      if (res.ok) {
+        setTestMsgStatus(`Webhook successfully set to: ${fullWebhookUrl}`);
+        loadBotData();
+      } else {
+        setTestMsgStatus(`Webhook error: ${res.description || 'Failed to update'}`);
+      }
+    } catch (e: any) {
+      setTestMsgStatus('Error setting webhook');
+    } finally {
+      setUpdatingWebhook(false);
+      setTimeout(() => setTestMsgStatus(null), 5000);
+    }
+  };
+
+  const handleDeleteWebhook = async () => {
+    setUpdatingWebhook(true);
+    try {
+      const res = await api.deleteWebhook();
+      if (res.ok) {
+        setTestMsgStatus('Webhook removed! Direct server long-polling is now active.');
+        loadBotData();
+      }
+    } catch (e: any) {
+      setTestMsgStatus('Error deleting webhook');
+    } finally {
+      setUpdatingWebhook(false);
+      setTimeout(() => setTestMsgStatus(null), 5000);
+    }
+  };
+
   const copyWorkerCode = () => {
     navigator.clipboard.writeText(workerScript);
     setCopiedWorker(true);
     setTimeout(() => setCopiedWorker(false), 2000);
   };
 
-  const webhookUrl = `https://api.telegram.org/bot${botToken}/setWebhook?url=https://${workerDomain}`;
+  const cleanDomain = workerDomain.trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  const targetWebhookUrl = `https://${cleanDomain}/api/bot/webhook`;
+  const setWebhookApiUrl = `https://api.telegram.org/bot${botToken}/setWebhook?url=${encodeURIComponent(targetWebhookUrl)}`;
 
   const copyWebhookCommand = () => {
-    navigator.clipboard.writeText(webhookUrl);
+    navigator.clipboard.writeText(setWebhookApiUrl);
     setCopiedWebhook(true);
     setTimeout(() => setCopiedWebhook(false), 2000);
   };
+
+  const isPollingMode = !webhookInfo?.url;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
@@ -130,9 +186,9 @@ export function BotSessionTab({ onRefresh }: Props) {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Bot Session Management</h1>
           <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-            <span>Telegram Bot & Cloudflare Edge Worker Integration</span>
+            <span>Telegram Bot & Cloudflare Edge Controller</span>
             <span aria-hidden="true">·</span>
-            <span>Real-time Client UUID Data Query</span>
+            <span>Real-time Client Subscription Ingestion</span>
           </div>
         </div>
 
@@ -155,7 +211,60 @@ export function BotSessionTab({ onRefresh }: Props) {
         </div>
       )}
 
-      {/* Bot Identity & Cloudflare Secrets Status Cards */}
+      {/* Connectivity & Operational Mode Banner */}
+      <div className="p-4 rounded-xl bg-[#0f172a] border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className={`p-2.5 rounded-lg ${isPollingMode ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'}`}>
+            {isPollingMode ? <Zap className="w-5 h-5 animate-pulse" /> : <Globe className="w-5 h-5" />}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-white">
+                {isPollingMode ? 'Direct Server Long-Polling Mode (Active)' : 'Cloudflare Webhook Mode (Active)'}
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                LIVE
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {isPollingMode
+                ? 'Backend server continuously polls Telegram getUpdates and answers /start & UUID queries immediately.'
+                : `Telegram sends updates directly to: ${webhookInfo?.url}`}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isPollingMode ? (
+            <button
+              onClick={handleSetWebhook}
+              disabled={updatingWebhook}
+              className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>Enable Cloudflare Webhook</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleDeleteWebhook}
+              disabled={updatingWebhook}
+              className="px-3 py-1.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Power className="w-3.5 h-3.5" />
+              <span>Switch to Direct Long-Polling</span>
+            </button>
+          )}
+          <button
+            onClick={loadBotData}
+            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+            title="Refresh Status"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Bot Identity Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card 1: Bot Profile */}
         <div className="p-5 rounded-xl bg-[#0f172a] border border-slate-800 flex flex-col justify-between">
@@ -166,19 +275,19 @@ export function BotSessionTab({ onRefresh }: Props) {
             </span>
             <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Active
+              Online
             </span>
           </div>
           <div className="my-3">
             <div className="text-base font-bold text-white font-mono">
-              {botInfo?.username ? `@${botInfo.username}` : '@XVIWE_Suite_3xui_bot'}
+              @XVIWE_bot
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              {botInfo?.first_name || 'X-VIWE VPN Suite Bot'} (ID: 8861055380)
+              X-VIWE VPN Bot (ID: 8861055380)
             </p>
           </div>
           <div className="text-[11px] text-slate-500 font-mono truncate">
-            Token: {botToken.slice(0, 12)}...{botToken.slice(-4)}
+            Token: {botToken.slice(0, 10)}...{botToken.slice(-4)}
           </div>
         </div>
 
@@ -187,27 +296,27 @@ export function BotSessionTab({ onRefresh }: Props) {
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-indigo-400" />
-              Privileged Administrator
+              Administrator Chat
             </span>
             <span className="text-[11px] text-cyan-400 font-mono">Admin Tier</span>
           </div>
           <div className="my-3">
             <div className="text-base font-bold text-white font-mono">Chat ID: {adminChatId}</div>
             <p className="text-xs text-slate-400 mt-1">
-              Authorized to receive system notices, alerts, and node telemetry
+              Recipient of automated node notifications & alerts
             </p>
           </div>
           <div className="text-[11px] text-slate-500 font-mono">
-            Direct dispatch enabled
+            Direct Telegram connection verified
           </div>
         </div>
 
-        {/* Card 3: 3x-UI API Endpoint */}
+        {/* Card 3: 3x-UI Panel Endpoint */}
         <div className="p-5 rounded-xl bg-[#0f172a] border border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
               <Radio className="w-4 h-4 text-emerald-400" />
-              Cloudflare Runtime Target
+              Cluster Node Target
             </span>
             <span className="text-[11px] text-emerald-400 font-mono">HTTPS 7575</span>
           </div>
@@ -220,21 +329,21 @@ export function BotSessionTab({ onRefresh }: Props) {
             </p>
           </div>
           <div className="text-[11px] text-slate-500 font-mono">
-            User: {panelUser} · Auth: Verified
+            User: {panelUser} · Live Sync
           </div>
         </div>
       </div>
 
-      {/* Main 2-Column Split: Bot Interactive Emulator & Cloudflare Worker Integration */}
+      {/* Main 2-Column Split: Bot Interactive Simulator & Cloudflare Integration */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Interactive Bot Simulator / Tester */}
-        <div className="p-6 rounded-2xl bg-[#0f172a] border border-slate-800 shadow-xl flex flex-col h-[580px]">
+        <div className="p-6 rounded-2xl bg-[#0f172a] border border-slate-800 shadow-xl flex flex-col h-[600px]">
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <Terminal className="w-5 h-5 text-cyan-400" />
-              <h2 className="text-base font-bold text-white">Live Bot Command Simulator</h2>
+              <h2 className="text-base font-bold text-white">Live Telegram Bot Simulator</h2>
             </div>
-            <span className="text-[11px] text-slate-400 font-mono">Telegram Chat Engine</span>
+            <span className="text-[11px] text-slate-400 font-mono">Real-time Responses</span>
           </div>
 
           {/* Quick preset commands */}
@@ -244,7 +353,8 @@ export function BotSessionTab({ onRefresh }: Props) {
               { label: '/start', cmd: '/start' },
               { label: '/status', cmd: '/status' },
               { label: '/stats', cmd: '/stats' },
-              { label: 'Check Sample UUID', cmd: '3a8f4c21-9e5b-48d6-a213-7d8a9e0f12a3' },
+              { label: 'Test UUID (Jash)', cmd: '583696f2-aef8-44e6-8c06-257941aa8aa7' },
+              { label: 'Test VLESS Link', cmd: 'vless://583696f2-aef8-44e6-8c06-257941aa8aa7@sudda.store:443?type=tcp&security=tls#Jash' },
             ].map((preset, idx) => (
               <button
                 key={idx}
@@ -270,7 +380,7 @@ export function BotSessionTab({ onRefresh }: Props) {
                 }`}
               >
                 <div
-                  className={`max-w-[85%] rounded-xl px-3.5 py-2.5 whitespace-pre-wrap leading-relaxed shadow-sm ${
+                  className={`max-w-[88%] rounded-xl px-3.5 py-2.5 whitespace-pre-wrap leading-relaxed shadow-sm ${
                     msg.sender === 'user'
                       ? 'bg-cyan-600 text-white rounded-br-none'
                       : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
@@ -285,7 +395,7 @@ export function BotSessionTab({ onRefresh }: Props) {
             {processingCmd && (
               <div className="flex items-center gap-2 text-slate-500 text-xs">
                 <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                <span>Bot is typing / querying 3x-UI panel...</span>
+                <span>Querying 3x-UI panel at sudda.store:7575...</span>
               </div>
             )}
           </div>
@@ -302,7 +412,7 @@ export function BotSessionTab({ onRefresh }: Props) {
               type="text"
               value={commandInput}
               onChange={(e) => setCommandInput(e.target.value)}
-              placeholder="Type /start, /status, /stats, or paste client UUID..."
+              placeholder="Send /start, /status, or send your vless code, config link, or UUID..."
               className="flex-1 bg-[#080c14] border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-mono text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500"
             />
             <button
@@ -316,12 +426,12 @@ export function BotSessionTab({ onRefresh }: Props) {
           </form>
         </div>
 
-        {/* Right: Cloudflare Workers Deployment Code & Secrets */}
-        <div className="p-6 rounded-2xl bg-[#0f172a] border border-slate-800 shadow-xl flex flex-col h-[580px]">
+        {/* Right: Cloudflare Workers Deployment Code & Webhook Manager */}
+        <div className="p-6 rounded-2xl bg-[#0f172a] border border-slate-800 shadow-xl flex flex-col h-[600px]">
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <Layers className="w-5 h-5 text-indigo-400" />
-              <h2 className="text-base font-bold text-white">Cloudflare Worker Integration</h2>
+              <h2 className="text-base font-bold text-white">Cloudflare Edge Integration</h2>
             </div>
             <button
               onClick={copyWorkerCode}
@@ -336,7 +446,7 @@ export function BotSessionTab({ onRefresh }: Props) {
           <div className="my-3 p-3 rounded-xl bg-[#080c14] border border-slate-800 text-xs font-mono">
             <div className="text-[11px] font-semibold text-slate-400 mb-2 font-sans flex items-center gap-1.5">
               <Key className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Configured Cloudflare Runtime Variables</span>
+              <span>Cloudflare Runtime & Edge Environment</span>
             </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
               <div><span className="text-slate-500">ADMIN_CHAT_ID:</span> <span className="text-slate-300 font-semibold">{adminChatId}</span></div>
@@ -355,13 +465,13 @@ export function BotSessionTab({ onRefresh }: Props) {
           {/* Webhook Setup Tool */}
           <div className="mt-3 pt-3 border-t border-slate-800 space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400 font-medium">Set Telegram Webhook to Cloudflare:</span>
+              <span className="text-slate-400 font-medium">Domain / Webhook Host:</span>
               <button
                 onClick={copyWebhookCommand}
                 className="text-cyan-400 hover:text-cyan-300 text-[11px] flex items-center gap-1 cursor-pointer font-mono"
               >
                 {copiedWebhook ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                <span>{copiedWebhook ? 'Copied' : 'Copy SetWebhook URL'}</span>
+                <span>{copiedWebhook ? 'Copied' : 'Copy setWebhook URL'}</span>
               </button>
             </div>
             <div className="flex gap-2">
@@ -369,18 +479,17 @@ export function BotSessionTab({ onRefresh }: Props) {
                 type="text"
                 value={workerDomain}
                 onChange={(e) => setWorkerDomain(e.target.value)}
-                placeholder="your-worker.workers.dev"
+                placeholder="xviwe.nvderttf56.pp.ua"
                 className="flex-1 bg-[#080c14] border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500"
               />
-              <a
-                href={webhookUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium flex items-center gap-1 border border-slate-700 transition-colors"
+              <button
+                type="button"
+                onClick={handleSetWebhook}
+                disabled={updatingWebhook}
+                className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
               >
-                <span>Trigger</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
+                <span>Apply Webhook</span>
+              </button>
             </div>
           </div>
         </div>

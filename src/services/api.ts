@@ -383,16 +383,10 @@ export const api = {
       },
       () => {
         const cmd = text.trim();
-        if (cmd === '/start') {
+        if (cmd === '/start' || cmd.startsWith('/start') || cmd === '/help') {
           return {
             success: true,
-            response:
-              '👋 *Welcome to X-VIWE SUITE Bot Controller!*\n\n' +
-              'Available Commands:\n' +
-              '• `/status` - Check 3x-UI server metrics & memory\n' +
-              '• `/stats` - View fleet summary & total active clients\n' +
-              '• `/check <UUID>` - Query remaining data & expiration\n' +
-              '• Or paste any client UUID directly to inspect traffic.',
+            response: 'Welcome! Send me your vless code, config link, or UUID to check your account status.',
           };
         } else if (cmd === '/status') {
           const st = getMockServerStatus();
@@ -437,26 +431,134 @@ export const api = {
         const res = lookupMockClient(queryUuid);
         if (res.success && res.client) {
           const c = res.client;
+          const upBytes = c.traffic.up;
+          const downBytes = c.traffic.down;
+          const totalUsedBytes = c.traffic.totalUsed;
+          const quotaBytes = c.traffic.totalAllocated;
+          const remainingBytes = c.traffic.remaining;
+
+          const toGB = (b: number) => (b / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+          const formatQuota = (b: number) => {
+            if (b <= 0) return 'Unlimited';
+            if (b >= 1024 * 1024 * 1024 * 1024) {
+              const tb = b / (1024 * 1024 * 1024 * 1024);
+              return tb % 1 === 0 ? `${tb} TB` : `${tb.toFixed(2)} TB`;
+            }
+            return toGB(b);
+          };
+
+          let usagePercent = 0;
+          if (quotaBytes > 0) {
+            usagePercent = Math.min(100, Math.max(0, Math.round((totalUsedBytes / quotaBytes) * 100)));
+          }
+          const filledCount = Math.min(10, Math.max(0, Math.round(usagePercent / 10)));
+          const emptyCount = 10 - filledCount;
+          const progressBar = '🟩'.repeat(filledCount) + '⬜️'.repeat(emptyCount) + ` ${usagePercent}%`;
+
+          let expiryDateStr = 'Never';
+          let timeLeftStr = 'Unlimited';
+          if (c.expiryTime > 0) {
+            const expDate = new Date(c.expiryTime);
+            expiryDateStr = expDate.toLocaleString('en-US', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: true,
+            });
+
+            const msDiff = c.expiryTime - Date.now();
+            if (msDiff <= 0) {
+              timeLeftStr = 'Expired';
+            } else {
+              const days = Math.ceil(msDiff / (1000 * 60 * 60 * 24));
+              timeLeftStr = `${days} Days`;
+            }
+          }
+
+          const lastUpdatedStr = new Date().toLocaleString('en-US', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true,
+          });
+
           return {
             success: true,
             response:
-              `🔑 *Client Subscription Details:*\n\n` +
-              `• *User / Remark:* \`${c.email}\`\n` +
-              `• *Status:* ${c.isExpired ? '❌ Expired' : c.enable ? '✅ Active' : '⏸ Disabled'}\n` +
-              `• *Inbound:* ${c.inbound.remark} (${c.inbound.protocol.toUpperCase()})\n` +
-              `• *Remaining Data:* *${formatBytes(c.traffic.remaining)}* / ${formatBytes(c.traffic.totalAllocated)}\n` +
-              `• *Data Consumed:* ${formatBytes(c.traffic.totalUsed)} (${c.traffic.usagePercent}%)\n` +
-              `• *Expiry:* ${c.expiryTime > 0 ? new Date(c.expiryTime).toLocaleDateString() : 'Unlimited'}\n` +
-              `• *Active Connections:* ${c.activeConnections} / ${c.limitIp || '∞'} devices\n\n` +
-              `🔗 *VPN Configuration URI:*\n\`${c.vpnUrl}\``,
+`💀 VPN OVERVIEW DASHBOARD¹
+
+⭐️ Client:	${c.email}
+💎 Server:	VIP
+🏠 Region:	VIP
+
+🌩 CONNECTION STATUS
+Account:	${c.isExpired ? '🔴 Expired' : c.enable ? '🟢 Active' : '🟡 Disabled'}
+VPN:	${c.isExpired ? '🔴 Disconnected' : '🟢 Connected'}
+
+🗓 SUBSCRIPTION INFO
+Expiry Date:	${expiryDateStr}
+Time Left:	${timeLeftStr}
+
+📊 USAGE & LIMITS
+👻 Data Usage
+${progressBar}
+
+Quota Limit:	${formatQuota(quotaBytes)}
+Data Left:	${formatQuota(remainingBytes)}
+Download:	${toGB(downBytes)}
+Upload:	${toGB(upBytes)}
+Total Used:	${toGB(totalUsedBytes)}
+
+⚔️ NETWORK DETAILS
+▪️ Protocol:	${c.inbound.protocol.toUpperCase()}
+▪️ Network Type:	WebSocket (WS)
+🔰 Latency:	42 ms
+🔗 IP Logs:	${c.limitIp || 1}
+
+Last Updated:
+${lastUpdatedStr}`,
           };
         }
 
         return {
           success: false,
-          response: `❓ Command not recognized or client UUID not found.\nUse \`/status\`, \`/stats\`, or enter a client UUID to inspect subscription.`,
+          response: `❌ *Account Not Found*\n\nNo subscription was found matching:\n\`${cmd}\`\n\nSend me your vless code, config link, or UUID to check your account status.`,
         };
       }
+    );
+  },
+
+  async getWebhookStatus() {
+    return safeFetchJson<{ ok: boolean; result?: any; message?: string }>(
+      '/api/bot/webhook-status',
+      undefined,
+      () => ({ ok: true, result: { url: '', pending_update_count: 0 } })
+    );
+  },
+
+  async setWebhook(url: string) {
+    return safeFetchJson<{ ok: boolean; result?: boolean; description?: string }>(
+      '/api/bot/set-webhook',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      },
+      () => ({ ok: true, result: true, description: 'Webhook set successfully' })
+    );
+  },
+
+  async deleteWebhook() {
+    return safeFetchJson<{ ok: boolean; result?: boolean; description?: string }>(
+      '/api/bot/delete-webhook',
+      { method: 'POST' },
+      () => ({ ok: true, result: true, description: 'Webhook deleted, live polling active' })
     );
   },
 

@@ -25,6 +25,25 @@ function getCleanBaseUrl(url: string) {
   return url.trim().replace(/\/+$/, '');
 }
 
+function extractQueryOrUuid(input: string): string {
+  const trimmed = input.trim();
+  const urlMatch = trimmed.match(/^(?:vless|trojan|ss):\/\/([^@/?#]+)/i);
+  if (urlMatch) return urlMatch[1].trim();
+
+  if (trimmed.startsWith('vmess://')) {
+    try {
+      const b64 = trimmed.slice(8);
+      const decoded = atob(b64);
+      const parsed = JSON.parse(decoded);
+      if (parsed.id) return parsed.id;
+    } catch (e) {}
+  }
+  const uuidMatch = trimmed.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  if (uuidMatch) return uuidMatch[0].trim();
+
+  return trimmed;
+}
+
 async function ensurePanelSession(env?: Env): Promise<boolean> {
   const panelUrl = env?.PANEL_URL || currentConfig.panelUrl;
   const panelUser = env?.PANEL_USER || currentConfig.panelUser;
@@ -118,9 +137,210 @@ function jsonResponse(data: any, status = 200) {
       'Content-Type': 'application/json; charset=utf-8',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   });
+}
+
+async function generateEdgeBotResponse(text: string, env?: Env): Promise<string> {
+  const cmd = (text || '').trim();
+
+  // Exact user requested response
+  if (cmd === '/start' || cmd.startsWith('/start') || cmd === '/help') {
+    return 'Welcome! Send me your vless code, config link, or UUID to check your account status.';
+  }
+
+  if (cmd === '/status') {
+    const resp = await callPanelApi('/server/status', 'POST', undefined, env);
+    if (resp.ok && resp.data?.obj) {
+      const st = resp.data.obj;
+      const upSec = Math.floor(st.uptime || 0);
+      const days = Math.floor(upSec / 86400);
+      const hours = Math.floor((upSec % 86400) / 3600);
+      return (
+        `🟢 *3x-UI Server Health: ONLINE (Realtime)*\n\n` +
+        `• *CPU Usage:* ${Number(st.cpu || 0).toFixed(1)}%\n` +
+        `• *RAM Used:* ${(st.mem.current / 1024 / 1024 / 1024).toFixed(2)} GB / ${(st.mem.total / 1024 / 1024 / 1024).toFixed(2)} GB\n` +
+        `• *Disk:* ${(st.disk.current / 1024 / 1024 / 1024).toFixed(2)} GB / ${(st.disk.total / 1024 / 1024 / 1024).toFixed(2)} GB\n` +
+        `• *Uptime:* ${days}d ${hours}h\n` +
+        `• *Xray Version:* ${st.xray?.version || 'v1.8.24'} (${st.xray?.state || 'running'})\n` +
+        `• *Active TCP/UDP:* ${st.tcpCount || 0} / ${st.udpCount || 0}`
+      );
+    }
+  }
+
+  if (cmd === '/stats') {
+    const resp = await callPanelApi('/panel/api/inbounds/list', 'GET', undefined, env);
+    if (resp.ok && Array.isArray(resp.data?.obj)) {
+      const inbounds = resp.data.obj;
+      let totalClients = 0;
+      let totalUp = 0;
+      let totalDown = 0;
+      inbounds.forEach((ib: any) => {
+        totalUp += ib.up || 0;
+        totalDown += ib.down || 0;
+        try {
+          const st = typeof ib.settings === 'string' ? JSON.parse(ib.settings) : ib.settings;
+          if (Array.isArray(st.clients)) totalClients += st.clients.length;
+        } catch (e) {}
+      });
+
+      return (
+        `📊 *X-VIWE SUITE Live Fleet Overview*\n\n` +
+        `• *Total Inbound Gateways:* ${inbounds.length}\n` +
+        `• *Active Registered Clients:* ${totalClients}\n` +
+        `• *Total Uplink Data:* ${(totalUp / 1024 / 1024 / 1024 / 1024).toFixed(2)} TB\n` +
+        `• *Total Downlink Data:* ${(totalDown / 1024 / 1024 / 1024 / 1024).toFixed(2)} TB\n` +
+        `• *Aggregate Fleet Traffic:* ${((totalUp + totalDown) / 1024 / 1024 / 1024 / 1024).toFixed(2)} TB`
+      );
+    }
+  }
+
+  // Lookup client by link, uuid, or query
+  let rawQuery = cmd;
+  if (cmd.startsWith('/check ')) {
+    rawQuery = cmd.replace('/check ', '').trim();
+  }
+  const extracted = extractQueryOrUuid(rawQuery).toLowerCase();
+
+  const resp = await callPanelApi('/panel/api/inbounds/list', 'GET', undefined, env);
+  if (resp.ok && Array.isArray(resp.data?.obj)) {
+    for (const ib of resp.data.obj) {
+      try {
+        const st = typeof ib.settings === 'string' ? JSON.parse(ib.settings) : ib.settings;
+        if (Array.isArray(st?.clients)) {
+          const found = st.clients.find(
+            (c: any) =>
+              (c.id && c.id.toLowerCase() === extracted) ||
+              (c.password && c.password.toLowerCase() === extracted) ||
+              (c.email && c.email.toLowerCase() === extracted) ||
+              (c.email && c.email.toLowerCase().includes(extracted))
+          );
+          if (found) {
+            const stat = ib.clientStats?.find((s: any) => s.email === found.email);
+            const upBytes = stat?.up || 0;
+            const downBytes = stat?.down || 0;
+            const totalUsedBytes = upBytes + downBytes;
+            const quotaBytes = found.totalGB || 0;
+            const remainingBytes = quotaBytes > 0 ? Math.max(0, quotaBytes - totalUsedBytes) : 0;
+
+            const isExpired = found.expiryTime > 0 && Date.now() > found.expiryTime;
+            const isEnabled = found.enable !== false;
+
+            const toGB = (b: number) => (b / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+            const formatQuota = (b: number) => {
+              if (b <= 0) return 'Unlimited';
+              if (b >= 1024 * 1024 * 1024 * 1024) {
+                const tb = b / (1024 * 1024 * 1024 * 1024);
+                return tb % 1 === 0 ? `${tb} TB` : `${tb.toFixed(2)} TB`;
+              }
+              return toGB(b);
+            };
+
+            const quotaLimitStr = formatQuota(quotaBytes);
+            const dataLeftStr = quotaBytes > 0 ? formatQuota(remainingBytes) : 'Unlimited';
+            const downloadStr = toGB(downBytes);
+            const uploadStr = toGB(upBytes);
+            const totalUsedStr = toGB(totalUsedBytes);
+
+            let usagePercent = 0;
+            if (quotaBytes > 0) {
+              usagePercent = Math.min(100, Math.max(0, Math.round((totalUsedBytes / quotaBytes) * 100)));
+            }
+            const filledCount = Math.min(10, Math.max(0, Math.round(usagePercent / 10)));
+            const emptyCount = 10 - filledCount;
+            const progressBar = '🟩'.repeat(filledCount) + '⬜️'.repeat(emptyCount) + ` ${usagePercent}%`;
+
+            let expiryDateStr = 'Never';
+            let timeLeftStr = 'Unlimited';
+            if (found.expiryTime > 0) {
+              const expDate = new Date(found.expiryTime);
+              expiryDateStr = expDate.toLocaleString('en-US', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true,
+              });
+
+              const msDiff = found.expiryTime - Date.now();
+              if (msDiff <= 0) {
+                timeLeftStr = 'Expired';
+              } else {
+                const days = Math.ceil(msDiff / (1000 * 60 * 60 * 24));
+                timeLeftStr = `${days} Days`;
+              }
+            }
+
+            let networkType = 'WebSocket (WS)';
+            try {
+              const stream = typeof ib.streamSettings === 'string' ? JSON.parse(ib.streamSettings) : ib.streamSettings;
+              if (stream?.network === 'tcp') networkType = 'TCP';
+              else if (stream?.network === 'ws') networkType = 'WebSocket (WS)';
+              else if (stream?.network === 'grpc') networkType = 'gRPC';
+              else if (stream?.network) networkType = String(stream.network).toUpperCase();
+            } catch (e) {}
+
+            const protocolStr = (ib.protocol || 'VLESS').toUpperCase();
+            const ipLogs = found.limitIp && found.limitIp > 0 ? found.limitIp : 1;
+
+            const lastUpdatedStr = new Date().toLocaleString('en-US', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: true,
+            });
+
+            return (
+`💀 VPN OVERVIEW DASHBOARD¹
+
+⭐️ Client:	${found.email || 'Client'}
+💎 Server:	VIP
+🏠 Region:	VIP
+
+🌩 CONNECTION STATUS
+Account:	${isExpired ? '🔴 Expired' : isEnabled ? '🟢 Active' : '🟡 Disabled'}
+VPN:	${isExpired ? '🔴 Disconnected' : '🟢 Connected'}
+
+🗓 SUBSCRIPTION INFO
+Expiry Date:	${expiryDateStr}
+Time Left:	${timeLeftStr}
+
+📊 USAGE & LIMITS
+👻 Data Usage
+${progressBar}
+
+Quota Limit:	${quotaLimitStr}
+Data Left:	${dataLeftStr}
+Download:	${downloadStr}
+Upload:	${uploadStr}
+Total Used:	${totalUsedStr}
+
+⚔️ NETWORK DETAILS
+▪️ Protocol:	${protocolStr}
+▪️ Network Type:	${networkType}
+🔰 Latency:	42 ms
+🔗 IP Logs:	${ipLogs}
+
+Last Updated:
+${lastUpdatedStr}`
+            );
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
+  return (
+    `❌ *Account Not Found*\n\n` +
+    `No active subscription was found matching:\n\`${cmd}\`\n\n` +
+    `Send me your vless code, config link, or UUID to check your account status.`
+  );
 }
 
 export default {
@@ -148,6 +368,50 @@ export default {
     if (env.PANEL_PASS) currentConfig.panelPass = env.PANEL_PASS;
     if (env.BOT_TOKEN) currentConfig.botToken = env.BOT_TOKEN;
     if (env.ADMIN_CHAT_ID) currentConfig.adminChatId = env.ADMIN_CHAT_ID;
+
+    // Telegram Webhook Handler
+    if ((pathname === '/api/bot/webhook' || pathname === '/webhook') && method === 'POST') {
+      try {
+        const update: any = await request.json();
+        if (update?.message?.chat?.id && update.message?.text) {
+          const chatId = update.message.chat.id;
+          const text = update.message.text;
+          const reply = await generateEdgeBotResponse(text, env);
+          const token = env.BOT_TOKEN || currentConfig.botToken;
+          await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: reply, parse_mode: 'Markdown' }),
+          });
+        }
+        return jsonResponse({ ok: true });
+      } catch (e: any) {
+        return jsonResponse({ ok: false, error: e.message }, 500);
+      }
+    }
+
+    // Webhook management endpoints
+    if (pathname === '/api/bot/webhook-status' && method === 'GET') {
+      const token = env.BOT_TOKEN || currentConfig.botToken;
+      const resp = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
+      const data = await resp.json();
+      return jsonResponse(data);
+    }
+
+    if (pathname === '/api/bot/set-webhook' && method === 'POST') {
+      const token = env.BOT_TOKEN || currentConfig.botToken;
+      const { url: targetUrl } = (await request.json()) as any;
+      const resp = await fetch(`https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(targetUrl)}`);
+      const data = await resp.json();
+      return jsonResponse(data);
+    }
+
+    if (pathname === '/api/bot/delete-webhook' && method === 'POST') {
+      const token = env.BOT_TOKEN || currentConfig.botToken;
+      const resp = await fetch(`https://api.telegram.org/bot${token}/deleteWebhook`);
+      const data = await resp.json();
+      return jsonResponse(data);
+    }
 
     // Route /api/* endpoints
     if (pathname.startsWith('/api')) {
@@ -370,6 +634,7 @@ export default {
                   const found = settings.clients.find(
                     (c: any) =>
                       (c.id && c.id.toLowerCase() === query) ||
+                      (c.password && c.password.toLowerCase() === query) ||
                       (c.email && c.email.toLowerCase() === query) ||
                       (c.email && c.email.toLowerCase().includes(query))
                   );
@@ -483,74 +748,8 @@ export default {
       if (pathname === '/api/bot/process-command' && method === 'POST') {
         try {
           const { text } = (await request.json()) as any;
-          const cmd = (text || '').trim();
-
-          if (cmd === '/start') {
-            return jsonResponse({
-              success: true,
-              response:
-                '👋 *Welcome to X-VIWE SUITE Cloudflare Bot Controller!*\n\n' +
-                'Available Commands:\n' +
-                '• `/status` - Check 3x-UI server metrics & memory\n' +
-                '• `/stats` - View fleet summary & total active clients\n' +
-                '• `/check <UUID>` - Query remaining data & expiration\n' +
-                '• Or paste any client UUID directly to inspect traffic.',
-            });
-          }
-
-          if (cmd === '/status') {
-            const resp = await callPanelApi('/server/status', 'POST', undefined, env);
-            if (resp.ok && resp.data?.obj) {
-              const st = resp.data.obj;
-              const upSec = Math.floor(st.uptime || 0);
-              const days = Math.floor(upSec / 86400);
-              const hours = Math.floor((upSec % 86400) / 3600);
-              return jsonResponse({
-                success: true,
-                response:
-                  `🟢 *3x-UI Server Health: ONLINE (Realtime)*\n\n` +
-                  `• *CPU Usage:* ${Number(st.cpu || 0).toFixed(1)}%\n` +
-                  `• *RAM Used:* ${(st.mem.current / 1024 / 1024 / 1024).toFixed(2)} GB / ${(st.mem.total / 1024 / 1024 / 1024).toFixed(2)} GB\n` +
-                  `• *Disk:* ${(st.disk.current / 1024 / 1024 / 1024).toFixed(2)} GB / ${(st.disk.total / 1024 / 1024 / 1024).toFixed(2)} GB\n` +
-                  `• *Uptime:* ${days}d ${hours}h\n` +
-                  `• *Xray Version:* ${st.xray?.version || 'v1.8.24'} (${st.xray?.state || 'running'})\n` +
-                  `• *Active TCP/UDP:* ${st.tcpCount || 0} / ${st.udpCount || 0}`,
-              });
-            }
-          }
-
-          if (cmd === '/stats') {
-            const resp = await callPanelApi('/panel/api/inbounds/list', 'GET', undefined, env);
-            if (resp.ok && Array.isArray(resp.data?.obj)) {
-              const inbounds = resp.data.obj;
-              let totalClients = 0;
-              let totalUp = 0;
-              let totalDown = 0;
-              inbounds.forEach((ib: any) => {
-                totalUp += ib.up || 0;
-                totalDown += ib.down || 0;
-                try {
-                  const st = typeof ib.settings === 'string' ? JSON.parse(ib.settings) : ib.settings;
-                  if (Array.isArray(st.clients)) totalClients += st.clients.length;
-                } catch (e) {}
-              });
-              return jsonResponse({
-                success: true,
-                response:
-                  `📊 *X-VIWE SUITE Live Fleet Overview*\n\n` +
-                  `• *Total Inbound Gateways:* ${inbounds.length}\n` +
-                  `• *Active Registered Clients:* ${totalClients}\n` +
-                  `• *Total Uplink Data:* ${(totalUp / 1024 / 1024 / 1024 / 1024).toFixed(2)} TB\n` +
-                  `• *Total Downlink Data:* ${(totalDown / 1024 / 1024 / 1024 / 1024).toFixed(2)} TB\n` +
-                  `• *Aggregate Fleet Traffic:* ${((totalUp + totalDown) / 1024 / 1024 / 1024 / 1024).toFixed(2)} TB`,
-              });
-            }
-          }
-
-          return jsonResponse({
-            success: false,
-            response: `❓ Command not recognized.\nUse \`/status\` or \`/stats\`.`,
-          });
+          const response = await generateEdgeBotResponse(text, env);
+          return jsonResponse({ success: true, response });
         } catch (e: any) {
           return jsonResponse({ success: false, response: 'Error: ' + e.message }, 500);
         }
@@ -561,7 +760,6 @@ export default {
     if (env.ASSETS) {
       const assetRes = await env.ASSETS.fetch(request);
       if (assetRes.status === 404) {
-        // Fallback to index.html for SPA client-side routes
         return env.ASSETS.fetch(new Request(new URL('/index.html', request.url), request));
       }
       return assetRes;

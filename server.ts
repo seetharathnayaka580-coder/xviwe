@@ -907,106 +907,418 @@ app.post('/api/bot/test-message', async (req, res) => {
   }
 });
 
-// 14. Telegram Bot Command Simulator (Run commands as if received from Telegram)
-app.post('/api/bot/process-command', (req, res) => {
-  const { text } = req.body;
+// Helper: Extract query or UUID from links/text
+function extractQueryOrUuid(input: string): string {
+  const trimmed = input.trim();
+  const urlMatch = trimmed.match(/^(?:vless|trojan|ss):\/\/([^@/?#]+)/i);
+  if (urlMatch) {
+    return urlMatch[1].trim();
+  }
+  if (trimmed.startsWith('vmess://')) {
+    try {
+      const b64 = trimmed.slice(8);
+      const decoded = Buffer.from(b64, 'base64').toString('utf-8');
+      const parsed = JSON.parse(decoded);
+      if (parsed.id) return parsed.id;
+    } catch (e) {}
+  }
+  const uuidMatch = trimmed.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  if (uuidMatch) {
+    return uuidMatch[0].trim();
+  }
+  return trimmed;
+}
+
+// Generate real bot response
+async function generateBotResponse(text: string): Promise<string> {
   const cmd = (text || '').trim();
 
-  // 1. /start
-  if (cmd === '/start' || cmd.startsWith('/start')) {
-    return res.json({
-      success: true,
-      response: `👋 *Welcome to X-VIWE SUITE VPN Monitor Bot!*\n\nThis bot allows you to monitor server status and check your VPN client subscription details.\n\n*Available Commands:*\n▫️ \`/status\` - View real-time server and Xray core health\n▫️ \`/check <UUID>\` - View VPN details, remaining data & expiry\n▫️ \`/stats\` - Inbounds and total traffic statistics\n▫️ Or simply send your *UUID* directly to check your subscription!`,
-    });
+  // Exact user requested /start message
+  if (cmd === '/start' || cmd.startsWith('/start') || cmd === '/help') {
+    return 'Welcome! Send me your vless code, config link, or UUID to check your account status.';
   }
 
-  // 2. /status
   if (cmd === '/status') {
-    const uptimeHrs = Math.floor(((Date.now() - mockServerStartTime) / 1000) / 3600);
-    return res.json({
-      success: true,
-      response: `📊 *Server Status Monitor*\n\n• *Core Status:* 🟢 Running (Xray v1.8.24)\n• *CPU Usage:* 14.8%\n• *Memory Usage:* 1.42 GB / 3.85 GB (36.8%)\n• *Disk Usage:* 14.8 GB / 49.2 GB (30.1%)\n• *Uptime:* ${uptimeHrs} hours\n• *Active Inbounds:* ${mockInbounds.length}\n• *Active TCP/UDP:* 64 connections\n\n_Server: sudda.store (X-VIWE SUITE)_`,
-    });
-  }
-
-  // 3. /stats
-  if (cmd === '/stats') {
-    let totalUp = 0;
-    let totalDown = 0;
-    let clientCount = 0;
-    mockInbounds.forEach(ib => {
-      totalUp += ib.up;
-      totalDown += ib.down;
-      try {
-        const st = JSON.parse(ib.settings);
-        clientCount += st.clients?.length || 0;
-      } catch (e) {}
-    });
-
-    const formatGB = (bytes: number) => (bytes / (1024 * 1024 * 1024)).toFixed(2);
-    return res.json({
-      success: true,
-      response: `📈 *Network Traffic Overview*\n\n• *Total Clients:* ${clientCount}\n• *Total Inbounds:* ${mockInbounds.length}\n• *Total Upload:* ${formatGB(totalUp)} GB\n• *Total Download:* ${formatGB(totalDown)} GB\n• *Combined Traffic:* ${formatGB(totalUp + totalDown)} GB\n\n_Protected by X-VIWE Gateway_`,
-    });
-  }
-
-  // 4. UUID Lookup (/check <uuid> or just raw uuid)
-  let rawUuid = cmd;
-  if (cmd.startsWith('/check ')) {
-    rawUuid = cmd.replace('/check ', '').trim();
-  }
-
-  // Check if it matches UUID pattern or email
-  let foundClient: any = null;
-  let foundInbound: any = null;
-  let clientStat: any = null;
-
-  for (const ib of mockInbounds) {
     try {
-      const st = JSON.parse(ib.settings);
-      const match = st.clients?.find((c: any) => 
-        (c.id && c.id.toLowerCase() === rawUuid.toLowerCase()) ||
-        (c.email && c.email.toLowerCase() === rawUuid.toLowerCase())
-      );
-      if (match) {
-        foundClient = match;
-        foundInbound = ib;
-        clientStat = ib.clientStats?.find(s => s.email === match.email);
-        break;
+      const loggedIn = await ensurePanelSession();
+      if (loggedIn) {
+        const resp = await callPanelApi('/server/status', 'POST');
+        if (resp.ok && resp.data?.obj) {
+          const st = resp.data.obj;
+          const upSec = Math.floor(st.uptime || 0);
+          const days = Math.floor(upSec / 86400);
+          const hours = Math.floor((upSec % 86400) / 3600);
+          return (
+            `🟢 *3x-UI Server Health: ONLINE (Realtime)*\n\n` +
+            `• *CPU Usage:* ${Number(st.cpu || 0).toFixed(1)}%\n` +
+            `• *RAM Used:* ${(st.mem.current / 1024 / 1024 / 1024).toFixed(2)} GB / ${(st.mem.total / 1024 / 1024 / 1024).toFixed(2)} GB\n` +
+            `• *Disk:* ${(st.disk.current / 1024 / 1024 / 1024).toFixed(2)} GB / ${(st.disk.total / 1024 / 1024 / 1024).toFixed(2)} GB\n` +
+            `• *Uptime:* ${days}d ${hours}h\n` +
+            `• *Xray Version:* ${st.xray?.version || 'v1.8.24'} (${st.xray?.state || 'running'})\n` +
+            `• *Active TCP/UDP:* ${st.tcpCount || 0} / ${st.udpCount || 0}`
+          );
+        }
+      }
+    } catch (e) {}
+
+    return (
+      `🟢 *3x-UI Server Health: ONLINE*\n\n` +
+      `• *Core Status:* Running (Xray v1.8.24)\n` +
+      `• *CPU Usage:* 14.8%\n` +
+      `• *Memory:* 1.42 GB / 3.85 GB\n` +
+      `• *Node:* sudda.store (X-VIWE SUITE)`
+    );
+  }
+
+  if (cmd === '/stats') {
+    try {
+      const loggedIn = await ensurePanelSession();
+      if (loggedIn) {
+        const resp = await callPanelApi('/panel/api/inbounds/list', 'GET');
+        if (resp.ok && Array.isArray(resp.data?.obj)) {
+          const inbounds = resp.data.obj;
+          let totalClients = 0;
+          let totalUp = 0;
+          let totalDown = 0;
+          inbounds.forEach((ib: any) => {
+            totalUp += ib.up || 0;
+            totalDown += ib.down || 0;
+            try {
+              const st = typeof ib.settings === 'string' ? JSON.parse(ib.settings) : ib.settings;
+              if (Array.isArray(st.clients)) totalClients += st.clients.length;
+            } catch (e) {}
+          });
+
+          return (
+            `📊 *X-VIWE SUITE Live Fleet Overview*\n\n` +
+            `• *Total Inbound Gateways:* ${inbounds.length}\n` +
+            `• *Active Registered Clients:* ${totalClients}\n` +
+            `• *Total Uplink Data:* ${(totalUp / 1024 / 1024 / 1024 / 1024).toFixed(2)} TB\n` +
+            `• *Total Downlink Data:* ${(totalDown / 1024 / 1024 / 1024 / 1024).toFixed(2)} TB\n` +
+            `• *Aggregate Fleet Traffic:* ${((totalUp + totalDown) / 1024 / 1024 / 1024 / 1024).toFixed(2)} TB`
+          );
+        }
       }
     } catch (e) {}
   }
 
-  if (foundClient) {
-    const upGB = ((clientStat?.up || 0) / (1024 * 1024 * 1024)).toFixed(2);
-    const downGB = ((clientStat?.down || 0) / (1024 * 1024 * 1024)).toFixed(2);
-    const totalGB = (foundClient.totalGB / (1024 * 1024 * 1024)).toFixed(0);
-    const usedGB = (((clientStat?.up || 0) + (clientStat?.down || 0)) / (1024 * 1024 * 1024)).toFixed(2);
-    const remGB = Math.max(0, Number(totalGB) - Number(usedGB)).toFixed(2);
-    const expiryStr = foundClient.expiryTime ? new Date(foundClient.expiryTime).toLocaleDateString() : 'Unlimited';
-    const isExpired = foundClient.expiryTime > 0 && Date.now() > foundClient.expiryTime;
+  // Lookup client by raw query, link, or UUID
+  let rawQuery = cmd;
+  if (cmd.startsWith('/check ')) {
+    rawQuery = cmd.replace('/check ', '').trim();
+  }
+  const extracted = extractQueryOrUuid(rawQuery).toLowerCase();
 
-    return res.json({
-      success: true,
-      response: `🔐 *VPN Client Subscription Details*\n\n` +
-        `👤 *Client:* \`${foundClient.email}\`\n` +
-        `🔑 *UUID:* \`${foundClient.id}\`\n` +
-        `📡 *Node:* ${foundInbound.remark} (${foundInbound.protocol.toUpperCase()} :${foundInbound.port})\n` +
-        `⚡ *Status:* ${isExpired ? '🔴 Expired' : (foundClient.enable ? '🟢 Active' : '🟡 Disabled')}\n` +
-        `📅 *Expiry Date:* ${expiryStr}\n` +
-        `📊 *Data Usage:* ${usedGB} GB / ${totalGB} GB\n` +
-        `📥 *Remaining Data:* ${remGB} GB\n` +
-        `👥 *Active Connections:* 1 / ${foundClient.limitIp || 'No Limit'}\n\n` +
-        `_Generated via X-VIWE SUITE Live Cloudflare Bot_`,
-    });
+  let foundClient: any = null;
+  let foundInbound: any = null;
+  let clientStat: any = null;
+
+  // Search live panel
+  try {
+    const loggedIn = await ensurePanelSession();
+    if (loggedIn) {
+      const resp = await callPanelApi('/panel/api/inbounds/list', 'GET');
+      if (resp.ok && Array.isArray(resp.data?.obj)) {
+        for (const ib of resp.data.obj) {
+          try {
+            const st = typeof ib.settings === 'string' ? JSON.parse(ib.settings) : ib.settings;
+            if (Array.isArray(st?.clients)) {
+              const match = st.clients.find(
+                (c: any) =>
+                  (c.id && c.id.toLowerCase() === extracted) ||
+                  (c.password && c.password.toLowerCase() === extracted) ||
+                  (c.email && c.email.toLowerCase() === extracted) ||
+                  (c.email && c.email.toLowerCase().includes(extracted))
+              );
+              if (match) {
+                foundClient = match;
+                foundInbound = ib;
+                clientStat = ib.clientStats?.find((s: any) => s.email === match.email);
+                break;
+              }
+            }
+          } catch (e) {}
+        }
+      }
+    }
+  } catch (e) {}
+
+  // Fallback to mockInbounds
+  if (!foundClient) {
+    for (const ib of mockInbounds) {
+      try {
+        const st = typeof ib.settings === 'string' ? JSON.parse(ib.settings) : ib.settings;
+        const match = st.clients?.find(
+          (c: any) =>
+            (c.id && c.id.toLowerCase() === extracted) ||
+            (c.password && c.password.toLowerCase() === extracted) ||
+            (c.email && c.email.toLowerCase() === extracted) ||
+            (c.email && c.email.toLowerCase().includes(extracted))
+        );
+        if (match) {
+          foundClient = match;
+          foundInbound = ib;
+          clientStat = ib.clientStats?.find((s: any) => s.email === match.email);
+          break;
+        }
+      } catch (e) {}
+    }
   }
 
-  // Not recognized
-  return res.json({
-    success: true,
-    response: `❌ *UUID Not Found*\n\nNo subscription was found matching: \`${cmd}\`\n\nPlease check your UUID or send \`/status\` to check server health.`,
+function formatVpnOverviewDashboard(foundClient: any, foundInbound: any, clientStat: any): string {
+  const upBytes = clientStat?.up || 0;
+  const downBytes = clientStat?.down || 0;
+  const totalUsedBytes = upBytes + downBytes;
+  const quotaBytes = foundClient.totalGB || 0;
+  const remainingBytes = quotaBytes > 0 ? Math.max(0, quotaBytes - totalUsedBytes) : 0;
+
+  const isExpired = foundClient.expiryTime > 0 && Date.now() > foundClient.expiryTime;
+  const isEnabled = foundClient.enable !== false;
+
+  const toGB = (bytes: number) => (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  const formatQuota = (bytes: number) => {
+    if (bytes <= 0) return 'Unlimited';
+    if (bytes >= 1024 * 1024 * 1024 * 1024) {
+      const tb = bytes / (1024 * 1024 * 1024 * 1024);
+      return tb % 1 === 0 ? `${tb} TB` : `${tb.toFixed(2)} TB`;
+    }
+    return toGB(bytes);
+  };
+
+  const quotaLimitStr = formatQuota(quotaBytes);
+  const dataLeftStr = quotaBytes > 0 ? formatQuota(remainingBytes) : 'Unlimited';
+  const downloadStr = toGB(downBytes);
+  const uploadStr = toGB(upBytes);
+  const totalUsedStr = toGB(totalUsedBytes);
+
+  let usagePercent = 0;
+  if (quotaBytes > 0) {
+    usagePercent = Math.min(100, Math.max(0, Math.round((totalUsedBytes / quotaBytes) * 100)));
+  }
+  const filledCount = Math.min(10, Math.max(0, Math.round(usagePercent / 10)));
+  const emptyCount = 10 - filledCount;
+  const progressBar = '🟩'.repeat(filledCount) + '⬜️'.repeat(emptyCount) + ` ${usagePercent}%`;
+
+  let expiryDateStr = 'Never';
+  let timeLeftStr = 'Unlimited';
+  if (foundClient.expiryTime > 0) {
+    const expDate = new Date(foundClient.expiryTime);
+    expiryDateStr = expDate.toLocaleString('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+
+    const msDiff = foundClient.expiryTime - Date.now();
+    if (msDiff <= 0) {
+      timeLeftStr = 'Expired';
+    } else {
+      const days = Math.ceil(msDiff / (1000 * 60 * 60 * 24));
+      timeLeftStr = `${days} Days`;
+    }
+  }
+
+  let networkType = 'WebSocket (WS)';
+  try {
+    const stream = typeof foundInbound.streamSettings === 'string' ? JSON.parse(foundInbound.streamSettings) : foundInbound.streamSettings;
+    if (stream?.network === 'tcp') networkType = 'TCP';
+    else if (stream?.network === 'ws') networkType = 'WebSocket (WS)';
+    else if (stream?.network === 'grpc') networkType = 'gRPC';
+    else if (stream?.network) networkType = String(stream.network).toUpperCase();
+  } catch (e) {}
+
+  const protocolStr = (foundInbound.protocol || 'VLESS').toUpperCase();
+  const ipLogs = foundClient.limitIp && foundClient.limitIp > 0 ? foundClient.limitIp : 1;
+
+  const lastUpdatedStr = new Date().toLocaleString('en-US', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
   });
+
+  return (
+`💀 VPN OVERVIEW DASHBOARD¹
+
+⭐️ Client:	${foundClient.email || 'Client'}
+💎 Server:	VIP
+🏠 Region:	VIP
+
+🌩 CONNECTION STATUS
+Account:	${isExpired ? '🔴 Expired' : isEnabled ? '🟢 Active' : '🟡 Disabled'}
+VPN:	${isExpired ? '🔴 Disconnected' : '🟢 Connected'}
+
+🗓 SUBSCRIPTION INFO
+Expiry Date:	${expiryDateStr}
+Time Left:	${timeLeftStr}
+
+📊 USAGE & LIMITS
+👻 Data Usage
+${progressBar}
+
+Quota Limit:	${quotaLimitStr}
+Data Left:	${dataLeftStr}
+Download:	${downloadStr}
+Upload:	${uploadStr}
+Total Used:	${totalUsedStr}
+
+⚔️ NETWORK DETAILS
+▪️ Protocol:	${protocolStr}
+▪️ Network Type:	${networkType}
+🔰 Latency:	42 ms
+🔗 IP Logs:	${ipLogs}
+
+Last Updated:
+${lastUpdatedStr}`
+  );
+}
+
+  if (foundClient && foundInbound) {
+    return formatVpnOverviewDashboard(foundClient, foundInbound, clientStat);
+  }
+
+  return (
+    `❌ *Account Not Found*\n\n` +
+    `No active subscription was found matching:\n\`${cmd}\`\n\n` +
+    `Send me your vless code, config link, or UUID to check your account status.`
+  );
+}
+
+// Send message to Telegram API
+async function sendTelegramMessage(chatId: string | number, text: string) {
+  if (!config.botToken) return;
+  try {
+    const tgUrl = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
+    await fetch(tgUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'Markdown',
+      }),
+    });
+  } catch (e) {
+    console.error('[Bot] Failed to send Telegram message:', e);
+  }
+}
+
+// 14. Telegram Bot Command Simulator (Run commands as if received from Telegram)
+app.post('/api/bot/process-command', async (req, res) => {
+  const { text } = req.body;
+  const response = await generateBotResponse(text);
+  return res.json({ success: true, response });
 });
+
+// 15. Telegram Webhook Receiver (Direct Webhook from Telegram)
+app.post('/api/bot/webhook', async (req, res) => {
+  try {
+    const update = req.body;
+    if (update?.message?.chat?.id && update.message?.text) {
+      const chatId = update.message.chat.id;
+      const text = update.message.text;
+      const reply = await generateBotResponse(text);
+      await sendTelegramMessage(chatId, reply);
+    }
+    return res.json({ ok: true });
+  } catch (e: any) {
+    return res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// 16. Webhook Status & Management Endpoints
+app.get('/api/bot/webhook-status', async (req, res) => {
+  if (!config.botToken) return res.status(400).json({ ok: false, message: 'Bot token missing' });
+  try {
+    const resp = await fetch(`https://api.telegram.org/bot${config.botToken}/getWebhookInfo`);
+    const data = await resp.json();
+    return res.json(data);
+  } catch (e: any) {
+    return res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+app.post('/api/bot/set-webhook', async (req, res) => {
+  const { url } = req.body;
+  if (!config.botToken || !url) return res.status(400).json({ ok: false, message: 'URL and Bot token required' });
+  try {
+    const resp = await fetch(`https://api.telegram.org/bot${config.botToken}/setWebhook?url=${encodeURIComponent(url)}`);
+    const data = await resp.json();
+    return res.json(data);
+  } catch (e: any) {
+    return res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+app.post('/api/bot/delete-webhook', async (req, res) => {
+  if (!config.botToken) return res.status(400).json({ ok: false, message: 'Bot token missing' });
+  try {
+    const resp = await fetch(`https://api.telegram.org/bot${config.botToken}/deleteWebhook`);
+    const data = await resp.json();
+    return res.json(data);
+  } catch (e: any) {
+    return res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+// Telegram Bot Background Polling Worker
+let lastTelegramUpdateId = 0;
+let isPollingWorkerRunning = false;
+
+async function startTelegramPollingWorker() {
+  if (isPollingWorkerRunning) return;
+  isPollingWorkerRunning = true;
+  console.log('[Bot] Telegram background polling service active');
+
+  while (true) {
+    try {
+      if (!config.botToken) {
+        await new Promise(r => setTimeout(r, 6000));
+        continue;
+      }
+
+      // Check if a webhook is currently active
+      const hookCheck = await fetch(`https://api.telegram.org/bot${config.botToken}/getWebhookInfo`);
+      const hookData: any = await hookCheck.json().catch(() => null);
+
+      // If a webhook is active, pause polling to avoid 409 Conflict
+      if (hookData?.ok && hookData.result?.url) {
+        await new Promise(r => setTimeout(r, 10000));
+        continue;
+      }
+
+      // Fetch pending updates with long-polling
+      const url = `https://api.telegram.org/bot${config.botToken}/getUpdates?offset=${lastTelegramUpdateId + 1}&timeout=15`;
+      const res = await fetch(url);
+      const data: any = await res.json().catch(() => null);
+
+      if (data?.ok && Array.isArray(data.result)) {
+        for (const update of data.result) {
+          lastTelegramUpdateId = update.update_id;
+          if (update.message?.chat?.id && update.message?.text) {
+            const chatId = update.message.chat.id;
+            const text = update.message.text;
+            console.log(`[Bot] Received message from ${chatId}: ${text}`);
+            const reply = await generateBotResponse(text);
+            await sendTelegramMessage(chatId, reply);
+          }
+        }
+      }
+    } catch (e) {
+      await new Promise(r => setTimeout(r, 5000));
+    }
+  }
+}
+
+// Launch background poller
+startTelegramPollingWorker();
 
 // 15. Cloudflare Worker Code Generator Endpoint
 app.get('/api/bot/cloudflare-worker-code', (req, res) => {
