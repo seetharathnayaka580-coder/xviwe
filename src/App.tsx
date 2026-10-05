@@ -50,8 +50,8 @@ export default function App() {
   useEffect(() => {
     if (isAuthenticated) {
       loadAllData();
-      // Fast 3-second interval for genuine real-time telemetry updates
-      const interval = setInterval(loadAllData, 3000);
+      // Ultra-fast 1-second interval for genuine real-time telemetry updates
+      const interval = setInterval(loadAllData, 1000);
       return () => clearInterval(interval);
     }
   }, [isAuthenticated]);

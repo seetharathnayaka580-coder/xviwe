@@ -61,7 +61,7 @@ export function DashboardTab({ serverStatus, inbounds, onlineClientsList = [], o
 
   useEffect(() => {
     sampleLatency();
-    const interval = setInterval(sampleLatency, 4000);
+    const interval = setInterval(sampleLatency, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -326,7 +326,7 @@ export function DashboardTab({ serverStatus, inbounds, onlineClientsList = [], o
                   Real-Time Network Speed & Live Throughput
                 </h2>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/40 text-emerald-300 font-semibold">
-                  LIVE INTERFACE (3S POLLING)
+                  LIVE INTERFACE (1S POLLING)
                 </span>
               </div>
               <p className="text-xs text-slate-400 font-mono mt-0.5">

@@ -140,7 +140,7 @@ function Sparkline({
 
 export function ServerMonitorTab({ initialStatus, isLive }: Props) {
   const [status, setStatus] = useState<ServerStatus | null>(initialStatus);
-  const refreshInterval = 2; // Auto-fetch every 2s for real-time live data
+  const refreshInterval = 1; // Auto-fetch every 1s for real-time live data
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [pingMs, setPingMs] = useState<number>(115);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
