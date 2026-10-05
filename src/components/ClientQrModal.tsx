@@ -90,7 +90,7 @@ export function ClientQrModal({ title, vpnUrl, email, onClose }: Props) {
             />
             <button
               onClick={copyToClipboard}
-              className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0"
+              className="btn-real btn-real-primary px-3.5 py-2 rounded-lg text-xs gap-1.5 shrink-0"
             >
               {copied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
               <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -101,14 +101,14 @@ export function ClientQrModal({ title, vpnUrl, email, onClose }: Props) {
         <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between">
           <button
             onClick={downloadQr}
-            className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-2 border border-slate-700 transition-colors"
+            className="btn-real btn-real-secondary px-3.5 py-2 rounded-lg text-xs gap-2"
           >
             <Download className="w-4 h-4 text-cyan-400" />
             <span>Save QR Image</span>
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors"
+            className="btn-real btn-real-secondary px-4 py-2 rounded-lg text-xs"
           >
             Close
           </button>

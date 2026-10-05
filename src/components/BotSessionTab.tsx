@@ -161,6 +161,15 @@ export function BotSessionTab({ onRefresh }: Props) {
     }
   };
 
+  // State for message copied feedback
+  const [copiedMsgIdx, setCopiedMsgIdx] = useState<number | null>(null);
+
+  const copyMessageText = (text: string, idx: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMsgIdx(idx);
+    setTimeout(() => setCopiedMsgIdx(null), 2000);
+  };
+
   const copyWorkerCode = () => {
     navigator.clipboard.writeText(workerScript);
     setCopiedWorker(true);
@@ -184,7 +193,12 @@ export function BotSessionTab({ onRefresh }: Props) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Bot Session Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+            Bot Session Management
+            <span className="text-[11px] font-mono text-cyan-400 font-semibold px-2 py-0.5 rounded-md bg-cyan-950/60 border border-cyan-800/40">
+              TELEGRAM v2.4
+            </span>
+          </h1>
           <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
             <span>Telegram Bot & Cloudflare Edge Controller</span>
             <span aria-hidden="true">·</span>
@@ -196,50 +210,51 @@ export function BotSessionTab({ onRefresh }: Props) {
           <button
             onClick={sendTestTelegramAlert}
             disabled={sendingAlert}
-            className="px-3.5 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer shadow-sm"
+            className="btn-real btn-real-primary px-4 py-2 rounded-xl text-xs gap-2 disabled:opacity-50"
           >
             {sendingAlert ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-            <span>Send Alert to Admin Telegram</span>
+            <span>Send Alert to Admin</span>
           </button>
         </div>
       </div>
 
       {testMsgStatus && (
-        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5 animate-in fade-in shadow-[0_2px_10px_rgba(16,185,129,0.1)]">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>{testMsgStatus}</span>
+          <span className="font-mono">{testMsgStatus}</span>
         </div>
       )}
 
       {/* Connectivity & Operational Mode Banner */}
-      <div className="p-4 rounded-xl bg-[#0f172a] border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className={`p-2.5 rounded-lg ${isPollingMode ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'}`}>
+      <div className="p-5 rounded-2xl bg-gradient-to-b from-[#0f172a] to-[#0a101d] border border-slate-800/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.05)] flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className={`p-3 rounded-xl shadow-inner ${isPollingMode ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'}`}>
             {isPollingMode ? <Zap className="w-5 h-5 animate-pulse" /> : <Globe className="w-5 h-5" />}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-white">
-                {isPollingMode ? 'Direct Server Long-Polling Mode (Active)' : 'Cloudflare Webhook Mode (Active)'}
+                {isPollingMode ? 'Direct Server Long-Polling Mode' : 'Cloudflare Webhook Mode'}
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                LIVE
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                ONLINE
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-400 mt-1">
               {isPollingMode
-                ? 'Backend server continuously polls Telegram getUpdates and answers /start & UUID queries immediately.'
+                ? 'Backend server continuously polls Telegram getUpdates and answers /status, /speed & UUID queries live.'
                 : `Telegram sends updates directly to: ${webhookInfo?.url}`}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {isPollingMode ? (
             <button
               onClick={handleSetWebhook}
               disabled={updatingWebhook}
-              className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="btn-real btn-real-secondary px-3.5 py-2 rounded-xl text-cyan-300 text-xs gap-2"
             >
               <Globe className="w-3.5 h-3.5" />
               <span>Enable Cloudflare Webhook</span>
@@ -248,7 +263,7 @@ export function BotSessionTab({ onRefresh }: Props) {
             <button
               onClick={handleDeleteWebhook}
               disabled={updatingWebhook}
-              className="px-3 py-1.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="btn-real btn-real-danger px-3.5 py-2 rounded-xl text-xs gap-2"
             >
               <Power className="w-3.5 h-3.5" />
               <span>Switch to Direct Long-Polling</span>
@@ -256,10 +271,10 @@ export function BotSessionTab({ onRefresh }: Props) {
           )}
           <button
             onClick={loadBotData}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+            className="btn-real btn-real-secondary p-2.5 rounded-xl text-slate-300"
             title="Refresh Status"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${loadingBot ? 'animate-spin text-cyan-400' : ''}`} />
           </button>
         </div>
       </div>
@@ -267,58 +282,58 @@ export function BotSessionTab({ onRefresh }: Props) {
       {/* Bot Identity Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card 1: Bot Profile */}
-        <div className="p-5 rounded-xl bg-[#0f172a] border border-slate-800 flex flex-col justify-between">
+        <div className="p-5 rounded-2xl bg-gradient-to-b from-[#0f172a] to-[#0a101d] border border-slate-800 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.05)] flex flex-col justify-between hover:border-slate-700/80 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
               <Bot className="w-4 h-4 text-cyan-400" />
               Telegram Bot Identity
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-mono font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Online
+              Active
             </span>
           </div>
           <div className="my-3">
-            <div className="text-base font-bold text-white font-mono">
+            <div className="text-lg font-bold text-white font-mono flex items-center gap-2">
               @XVIWE_bot
             </div>
             <p className="text-xs text-slate-400 mt-1">
               X-VIWE VPN Bot (ID: 8861055380)
             </p>
           </div>
-          <div className="text-[11px] text-slate-500 font-mono truncate">
+          <div className="text-[11px] text-slate-500 font-mono truncate bg-slate-950/60 px-2.5 py-1 rounded-lg border border-slate-800/80">
             Token: {botToken.slice(0, 10)}...{botToken.slice(-4)}
           </div>
         </div>
 
         {/* Card 2: Admin Telegram Chat ID */}
-        <div className="p-5 rounded-xl bg-[#0f172a] border border-slate-800 flex flex-col justify-between">
+        <div className="p-5 rounded-2xl bg-gradient-to-b from-[#0f172a] to-[#0a101d] border border-slate-800 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.05)] flex flex-col justify-between hover:border-slate-700/80 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-indigo-400" />
               Administrator Chat
             </span>
-            <span className="text-[11px] text-cyan-400 font-mono">Admin Tier</span>
+            <span className="text-[11px] text-indigo-400 font-mono font-medium">Admin Tier</span>
           </div>
           <div className="my-3">
-            <div className="text-base font-bold text-white font-mono">Chat ID: {adminChatId}</div>
+            <div className="text-lg font-bold text-white font-mono">Chat ID: {adminChatId}</div>
             <p className="text-xs text-slate-400 mt-1">
               Recipient of automated node notifications & alerts
             </p>
           </div>
-          <div className="text-[11px] text-slate-500 font-mono">
+          <div className="text-[11px] text-slate-500 font-mono bg-slate-950/60 px-2.5 py-1 rounded-lg border border-slate-800/80">
             Direct Telegram connection verified
           </div>
         </div>
 
         {/* Card 3: 3x-UI Panel Endpoint */}
-        <div className="p-5 rounded-xl bg-[#0f172a] border border-slate-800 flex flex-col justify-between">
+        <div className="p-5 rounded-2xl bg-gradient-to-b from-[#0f172a] to-[#0a101d] border border-slate-800 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.05)] flex flex-col justify-between hover:border-slate-700/80 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
               <Radio className="w-4 h-4 text-emerald-400" />
               Cluster Node Target
             </span>
-            <span className="text-[11px] text-emerald-400 font-mono">HTTPS 7575</span>
+            <span className="text-[11px] text-emerald-400 font-mono font-medium">HTTPS 7575</span>
           </div>
           <div className="my-3">
             <div className="text-xs font-bold text-white font-mono truncate">
@@ -328,7 +343,7 @@ export function BotSessionTab({ onRefresh }: Props) {
               Route: /yhSuh09ZWZ0RTNT
             </p>
           </div>
-          <div className="text-[11px] text-slate-500 font-mono">
+          <div className="text-[11px] text-slate-500 font-mono bg-slate-950/60 px-2.5 py-1 rounded-lg border border-slate-800/80">
             User: {panelUser} · Live Sync
           </div>
         </div>
@@ -337,26 +352,36 @@ export function BotSessionTab({ onRefresh }: Props) {
       {/* Main 2-Column Split: Bot Interactive Simulator & Cloudflare Integration */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Interactive Bot Simulator / Tester */}
-        <div className="p-6 rounded-2xl bg-[#0f172a] border border-slate-800 shadow-xl flex flex-col h-[600px]">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <div className="flex items-center gap-2">
-              <Terminal className="w-5 h-5 text-cyan-400" />
-              <h2 className="text-base font-bold text-white">Live Telegram Bot Simulator</h2>
+        <div className="p-6 rounded-2xl bg-gradient-to-b from-[#0f172a] to-[#080d18] border border-slate-800 shadow-2xl flex flex-col h-[640px]">
+          <div className="flex items-center justify-between pb-3.5 border-b border-slate-800/90">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-cyan-950/60 border border-cyan-800/50 text-cyan-400">
+                <Terminal className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-white">Live Telegram Bot Simulator</h2>
+                <span className="text-[11px] text-slate-400 font-mono">Real-time Ingestion Terminal</span>
+              </div>
             </div>
-            <span className="text-[11px] text-slate-400 font-mono">Real-time Responses</span>
+            <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              ONLINE
+            </span>
           </div>
 
-          {/* Quick preset commands */}
-          <div className="py-2.5 flex items-center gap-1.5 overflow-x-auto text-[11px]">
-            <span className="text-slate-500 shrink-0">Try:</span>
+          {/* Quick preset commands styled like authentic tactile keys */}
+          <div className="py-3 flex items-center gap-2 overflow-x-auto text-[11px] scrollbar-thin">
+            <span className="text-slate-500 font-mono text-[10px] shrink-0 uppercase tracking-wider">Commands:</span>
             {[
-              { label: '/start', cmd: '/start' },
-              { label: '/status', cmd: '/status' },
-              { label: '/speed', cmd: '/speed' },
-              { label: 'Name: Malsha', cmd: 'Malsha' },
-              { label: 'Name: Jash', cmd: 'Jash' },
-              { label: 'UUID: Malsha', cmd: '85f195b0-142b-4304-9f2b-1037b5b3e746' },
-              { label: 'UUID: Jash', cmd: '583696f2-aef8-44e6-8c06-257941aa8aa7' },
+              { label: '⚡️ /status', cmd: '/status' },
+              { label: '🚀 /speed', cmd: '/speed' },
+              { label: '📦 /traffic', cmd: '/traffic' },
+              { label: '👋 /start', cmd: '/start' },
+              { label: '❓ /help', cmd: '/help' },
+              { label: '👤 Malsha', cmd: 'Malsha' },
+              { label: '👤 Jash', cmd: 'Jash' },
+              { label: '🔑 UUID: Malsha', cmd: '85f195b0-142b-4304-9f2b-1037b5b3e746' },
+              { label: '🔑 UUID: Jash', cmd: '583696f2-aef8-44e6-8c06-257941aa8aa7' },
             ].map((preset, idx) => (
               <button
                 key={idx}
@@ -365,7 +390,7 @@ export function BotSessionTab({ onRefresh }: Props) {
                   setCommandInput(preset.cmd);
                   handleSendCommand(preset.cmd);
                 }}
-                className="px-2.5 py-1 rounded bg-[#080c14] hover:bg-slate-800 text-cyan-300 border border-slate-700/60 font-mono whitespace-nowrap transition-colors cursor-pointer"
+                className="btn-real btn-real-secondary px-3 py-1.5 rounded-lg text-slate-200 hover:text-cyan-300 font-mono text-[11px] whitespace-nowrap"
               >
                 {preset.label}
               </button>
@@ -373,7 +398,7 @@ export function BotSessionTab({ onRefresh }: Props) {
           </div>
 
           {/* Message Stream */}
-          <div className="flex-1 bg-[#080c14] border border-slate-800/80 rounded-xl p-4 overflow-y-auto space-y-3 font-mono text-xs">
+          <div className="flex-1 bg-[#060a12] border border-slate-800/80 rounded-xl p-4 overflow-y-auto space-y-4 font-mono text-xs shadow-inner">
             {chatMessages.map((msg, idx) => (
               <div
                 key={idx}
@@ -381,46 +406,70 @@ export function BotSessionTab({ onRefresh }: Props) {
                   msg.sender === 'user' ? 'items-end' : 'items-start'
                 }`}
               >
+                <div className="flex items-center gap-2 mb-1 px-1 text-[10px] text-slate-500">
+                  <span className="font-semibold text-slate-400">{msg.sender === 'user' ? 'You' : 'X-VIWE Bot'}</span>
+                  <span>·</span>
+                  <span>{msg.time}</span>
+                </div>
                 <div
-                  className={`max-w-[88%] rounded-xl px-3.5 py-2.5 whitespace-pre-wrap leading-relaxed shadow-sm ${
+                  className={`relative group max-w-[92%] rounded-2xl p-4 whitespace-pre-wrap leading-relaxed shadow-lg ${
                     msg.sender === 'user'
-                      ? 'bg-cyan-600 text-white rounded-br-none'
-                      : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
+                      ? 'bg-gradient-to-b from-cyan-600 to-blue-600 text-white rounded-br-none border border-cyan-400/40 shadow-cyan-950/30'
+                      : 'bg-[#0c1424] border border-slate-800/90 text-slate-200 rounded-bl-none shadow-black/40'
                   }`}
                 >
                   {msg.text}
+
+                  {/* 1-Click Copy Button for Bot Responses */}
+                  {msg.sender === 'bot' && (
+                    <button
+                      onClick={() => copyMessageText(msg.text, idx)}
+                      title="Copy response to clipboard"
+                      className="btn-real btn-real-secondary absolute top-2.5 right-2.5 p-1.5 rounded-lg text-slate-400 hover:text-cyan-300 opacity-80 group-hover:opacity-100"
+                    >
+                      {copiedMsgIdx === idx ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  )}
                 </div>
-                <span className="text-[10px] text-slate-500 mt-1 px-1">{msg.time}</span>
               </div>
             ))}
 
             {processingCmd && (
-              <div className="flex items-center gap-2 text-slate-500 text-xs">
+              <div className="flex items-center gap-2.5 text-cyan-400 text-xs py-2 px-3 bg-cyan-950/30 border border-cyan-800/40 rounded-xl">
                 <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                <span>Querying 3x-UI panel at sudda.store:7575...</span>
+                <span className="font-mono">Fetching real-time telemetry from sudda.store:7575...</span>
               </div>
             )}
           </div>
 
-          {/* Input Box */}
+          {/* Input Box with Tactile Send Button */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSendCommand();
             }}
-            className="mt-3 flex gap-2"
+            className="mt-3.5 flex gap-2"
           >
-            <input
-              type="text"
-              value={commandInput}
-              onChange={(e) => setCommandInput(e.target.value)}
-              placeholder="Send /start, /status, or send your vless code, config link, or UUID..."
-              className="flex-1 bg-[#080c14] border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-mono text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500"
-            />
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={commandInput}
+                onChange={(e) => setCommandInput(e.target.value)}
+                placeholder="Send /status, /speed, UUID, or Remark name..."
+                className="w-full bg-[#060a12] border border-slate-800 rounded-xl px-4 py-3 text-xs font-mono text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/70 focus:ring-2 focus:ring-cyan-500/20 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] transition-all"
+              />
+              <span className="absolute right-3 top-3 text-[10px] text-slate-600 font-mono pointer-events-none">
+                ↵ Enter
+              </span>
+            </div>
             <button
               type="submit"
               disabled={processingCmd || !commandInput.trim()}
-              className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+              className="btn-real btn-real-primary px-5 py-3 rounded-xl text-xs gap-2 disabled:opacity-50"
             >
               <Send className="w-3.5 h-3.5" />
               <span>Send</span>
@@ -429,50 +478,55 @@ export function BotSessionTab({ onRefresh }: Props) {
         </div>
 
         {/* Right: Cloudflare Workers Deployment Code & Webhook Manager */}
-        <div className="p-6 rounded-2xl bg-[#0f172a] border border-slate-800 shadow-xl flex flex-col h-[600px]">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-indigo-400" />
-              <h2 className="text-base font-bold text-white">Cloudflare Edge Integration</h2>
+        <div className="p-6 rounded-2xl bg-gradient-to-b from-[#0f172a] to-[#080d18] border border-slate-800 shadow-2xl flex flex-col h-[640px]">
+          <div className="flex items-center justify-between pb-3.5 border-b border-slate-800/90">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-indigo-950/60 border border-indigo-800/50 text-indigo-400">
+                <Layers className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-white">Cloudflare Edge Integration</h2>
+                <span className="text-[11px] text-slate-400 font-mono">Serverless Gateway Script</span>
+              </div>
             </div>
             <button
               onClick={copyWorkerCode}
-              className="px-3 py-1.5 rounded-lg bg-cyan-600/10 hover:bg-cyan-600/20 text-cyan-400 border border-cyan-500/20 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="btn-real btn-real-secondary px-3.5 py-1.5 rounded-xl text-cyan-300 text-xs gap-2"
             >
               {copiedWorker ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedWorker ? 'Copied' : 'Copy worker.js'}</span>
+              <span>{copiedWorker ? 'Copied script' : 'Copy worker.js'}</span>
             </button>
           </div>
 
           {/* Cloudflare Runtime Variables Table */}
-          <div className="my-3 p-3 rounded-xl bg-[#080c14] border border-slate-800 text-xs font-mono">
-            <div className="text-[11px] font-semibold text-slate-400 mb-2 font-sans flex items-center gap-1.5">
+          <div className="my-3 p-3.5 rounded-xl bg-[#060a12] border border-slate-800/90 text-xs font-mono shadow-inner">
+            <div className="text-[11px] font-semibold text-slate-300 mb-2 font-sans flex items-center gap-1.5">
               <Key className="w-3.5 h-3.5 text-cyan-400" />
               <span>Cloudflare Runtime & Edge Environment</span>
             </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
-              <div><span className="text-slate-500">ADMIN_CHAT_ID:</span> <span className="text-slate-300 font-semibold">{adminChatId}</span></div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+              <div><span className="text-slate-500">ADMIN_CHAT_ID:</span> <span className="text-slate-200 font-semibold">{adminChatId}</span></div>
               <div><span className="text-slate-500">BOT_TOKEN:</span> <span className="text-slate-300">{botToken.slice(0, 10)}...</span></div>
-              <div><span className="text-slate-500">PANEL_USER:</span> <span className="text-slate-300 font-semibold">{panelUser}</span></div>
-              <div><span className="text-slate-500">PANEL_PASS:</span> <span className="text-slate-300">••••••••••</span></div>
+              <div><span className="text-slate-500">PANEL_USER:</span> <span className="text-slate-200 font-semibold">{panelUser}</span></div>
+              <div><span className="text-slate-500">PANEL_PASS:</span> <span className="text-slate-400">••••••••••</span></div>
               <div className="col-span-2 truncate"><span className="text-slate-500">PANEL_URL:</span> <span className="text-cyan-300">{panelUrl}</span></div>
             </div>
           </div>
 
           {/* Worker Code Viewer */}
-          <div className="flex-1 bg-[#080c14] border border-slate-800 rounded-xl p-3 overflow-y-auto font-mono text-[11px] text-slate-300 leading-relaxed select-all">
+          <div className="flex-1 bg-[#060a12] border border-slate-800/90 rounded-xl p-3.5 overflow-y-auto font-mono text-[11px] text-slate-300 leading-relaxed select-all shadow-inner">
             <pre className="whitespace-pre">{workerScript || '// Fetching Cloudflare Worker script...'}</pre>
           </div>
 
           {/* Webhook Setup Tool */}
-          <div className="mt-3 pt-3 border-t border-slate-800 space-y-2">
+          <div className="mt-3.5 pt-3.5 border-t border-slate-800/90 space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-400 font-medium">Domain / Webhook Host:</span>
               <button
                 onClick={copyWebhookCommand}
-                className="text-cyan-400 hover:text-cyan-300 text-[11px] flex items-center gap-1 cursor-pointer font-mono"
+                className="btn-real btn-real-secondary px-2.5 py-1 text-cyan-400 text-[11px] gap-1.5 font-mono"
               >
-                {copiedWebhook ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                {copiedWebhook ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiedWebhook ? 'Copied' : 'Copy setWebhook URL'}</span>
               </button>
             </div>
@@ -482,13 +536,13 @@ export function BotSessionTab({ onRefresh }: Props) {
                 value={workerDomain}
                 onChange={(e) => setWorkerDomain(e.target.value)}
                 placeholder="xviwe.nvderttf56.pp.ua"
-                className="flex-1 bg-[#080c14] border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="flex-1 bg-[#060a12] border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500/70 shadow-inner"
               />
               <button
                 type="button"
                 onClick={handleSetWebhook}
                 disabled={updatingWebhook}
-                className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                className="btn-real btn-real-primary px-4 py-2 rounded-xl text-xs font-semibold gap-1.5"
               >
                 <span>Apply Webhook</span>
               </button>

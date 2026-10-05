@@ -169,14 +169,14 @@ export function SettingsModal({ onClose, onConfigSaved }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+              className="btn-real btn-real-secondary px-4 py-2 text-xs font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="btn-real btn-real-primary px-4 py-2 text-xs font-bold rounded-lg gap-1.5"
             >
               {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
               <span>Save & Reconnect</span>

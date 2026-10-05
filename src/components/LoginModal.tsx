@@ -162,7 +162,7 @@ export function LoginModal({ onSuccess }: Props) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 py-3 px-4 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-cyan-900/30 flex items-center justify-center gap-2 transition-all disabled:opacity-60 cursor-pointer"
+            className="btn-real btn-real-primary w-full mt-2 py-3 px-4 text-sm font-bold rounded-xl gap-2 disabled:opacity-60"
           >
             {loading ? (
               <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -181,7 +181,7 @@ export function LoginModal({ onSuccess }: Props) {
           <button
             type="button"
             onClick={fillQuickAccess}
-            className="text-xs text-slate-400 hover:text-cyan-400 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="btn-real btn-real-secondary px-3.5 py-1.5 rounded-lg text-xs text-slate-300 hover:text-cyan-300 gap-1.5"
           >
             <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
             <span>Use Configured Server Passkey</span>

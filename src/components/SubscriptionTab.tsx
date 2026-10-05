@@ -244,7 +244,12 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Subscription Services</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+            Subscription Services
+            <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md bg-cyan-950/60 border border-cyan-800/40 text-cyan-400">
+              PROVISIONING
+            </span>
+          </h1>
           <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
             <span>Client Lifecycle Management</span>
             <span aria-hidden="true">·</span>
@@ -259,7 +264,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
               setNewIbPort(Math.floor(Math.random() * 20000 + 10000));
               setShowAddInboundModal(true);
             }}
-            className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="btn-real btn-real-secondary px-4 py-2 rounded-xl text-xs gap-2"
           >
             <Plus className="w-3.5 h-3.5 text-cyan-400" />
             <span>New Inbound</span>
@@ -267,7 +272,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
 
           <button
             onClick={() => openAddClient(activeInbound?.id)}
-            className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+            className="btn-real btn-real-primary px-4 py-2 rounded-xl text-xs gap-2"
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>Add Client</span>
@@ -276,7 +281,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
       </div>
 
       {/* Inbound Selection Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-800">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-800/80 scrollbar-thin">
         {inbounds.map((ib) => {
           const isActive = (activeInbound?.id === ib.id);
           let clientCount = 0;
@@ -288,20 +293,20 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
           return (
             <div
               key={ib.id}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl border-t border-x text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl border-t border-x text-xs font-medium transition-all whitespace-nowrap cursor-pointer select-none ${
                 isActive
-                  ? 'bg-[#0f172a] border-slate-700 text-cyan-400 font-semibold shadow-sm'
+                  ? 'bg-gradient-to-b from-slate-900 to-[#0f172a] border-slate-700 text-cyan-300 font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
                   : 'bg-transparent border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
               }`}
               onClick={() => setSelectedInboundId(ib.id)}
             >
-              <div className="flex items-center gap-1.5">
-                <span className="uppercase text-[11px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 font-mono font-bold">
+              <div className="flex items-center gap-2">
+                <span className="uppercase text-[10px] px-2 py-0.5 rounded-md bg-cyan-950/70 text-cyan-400 font-mono font-bold border border-cyan-800/40">
                   {ib.protocol}
                 </span>
-                <span>{ib.remark}</span>
+                <span className="font-semibold">{ib.remark}</span>
                 <span className="text-slate-500 font-mono">(:{ib.port})</span>
-                <span className="text-[11px] text-slate-500 font-mono">[{clientCount} users]</span>
+                <span className="text-[11px] text-slate-400 font-mono bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-800">{clientCount} users</span>
               </div>
 
               {inbounds.length > 1 && (
@@ -312,7 +317,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                     setDeleteInboundTarget(ib);
                   }}
                   title="Delete Inbound"
-                  className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
+                  className="p-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors ml-1"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -324,7 +329,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
 
       {/* Selected Inbound Details Bar */}
       {activeInbound && (
-        <div className="p-4 rounded-xl bg-[#0f172a] border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs font-mono">
+        <div className="p-4 rounded-xl bg-[#0f172a] border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
           <div className="flex items-center gap-4 text-slate-300">
             <div>
               <span className="text-slate-500 block text-[11px]">INBOUND REMARK</span>
@@ -346,7 +351,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => openAddClient(activeInbound.id)}
-              className="px-3 py-1.5 rounded-lg bg-cyan-600/10 hover:bg-cyan-600/20 text-cyan-400 border border-cyan-500/20 text-xs font-sans font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="btn-real btn-real-cyan px-3 py-1.5 rounded-lg text-xs gap-1.5"
             >
               <UserPlus className="w-3.5 h-3.5" />
               <span>Add Client to this Inbound</span>
@@ -374,9 +379,9 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1 rounded font-medium capitalize transition-colors cursor-pointer ${
+              className={`btn-real px-3 py-1 rounded font-medium capitalize transition-all ${
                 statusFilter === st
-                  ? 'bg-slate-800 text-cyan-400 shadow-sm'
+                  ? 'btn-real-secondary text-cyan-400 shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -479,7 +484,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                         <button
                           onClick={() => toggleClientEnable(client, activeInbound.id)}
                           title={client.enable ? 'Disable client' : 'Enable client'}
-                          className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                          className={`btn-real p-1.5 rounded-lg border transition-all ${
                             client.enable
                               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
                               : 'bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300'
@@ -495,7 +500,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                           <button
                             onClick={() => openQrForClient(client, activeInbound)}
                             title="Show VPN QR & URI"
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
+                            className="btn-real btn-real-secondary p-1.5 rounded-lg"
                           >
                             <QrCode className="w-3.5 h-3.5 text-cyan-400" />
                           </button>
@@ -504,7 +509,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                           <button
                             onClick={() => setRenewClientTarget({ client, inboundId: activeInbound.id })}
                             title="Renew subscription (extend expiry / add GB)"
-                            className="px-2.5 py-1 rounded-lg bg-cyan-600/10 hover:bg-cyan-600/20 text-cyan-400 border border-cyan-500/20 font-sans font-medium text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                            className="btn-real btn-real-cyan px-2.5 py-1 rounded-lg font-sans font-medium text-[11px] gap-1"
                           >
                             <RefreshCw className="w-3 h-3" />
                             <span>Renew</span>
@@ -514,7 +519,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                           <button
                             onClick={() => setDeleteClientTarget({ client, inboundId: activeInbound.id })}
                             title="Delete client"
-                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors cursor-pointer"
+                            className="btn-real btn-real-danger p-1.5 rounded-lg"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -545,7 +550,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
               </div>
               <button
                 onClick={() => setShowAddClientModal(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                className="btn-real btn-real-secondary p-1.5 text-slate-400 hover:text-white rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -591,7 +596,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                   <button
                     type="button"
                     onClick={handleGenerateUuid}
-                    className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
+                    className="btn-real btn-real-secondary px-2 py-0.5 rounded text-[11px] text-cyan-400 gap-1"
                   >
                     <RefreshCw className="w-3 h-3" />
                     <span>Auto-Generate</span>
@@ -666,14 +671,14 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowAddClientModal(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white"
+                  className="btn-real btn-real-secondary px-4 py-2 text-xs font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingClient}
-                  className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="btn-real btn-real-primary px-4 py-2 text-xs font-semibold rounded-lg gap-1.5"
                 >
                   {savingClient && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   <span>Provision Client</span>
@@ -700,7 +705,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
               </div>
               <button
                 onClick={() => setRenewClientTarget(null)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                className="btn-real btn-real-secondary p-1.5 text-slate-400 hover:text-white rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -717,10 +722,10 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                       key={d}
                       type="button"
                       onClick={() => setRenewDaysToAdd(d)}
-                      className={`flex-1 py-1.5 rounded-lg border text-xs font-mono font-medium transition-colors cursor-pointer ${
+                      className={`btn-real flex-1 py-1.5 rounded-lg border text-xs font-mono font-medium transition-colors cursor-pointer ${
                         renewDaysToAdd === d
-                          ? 'bg-cyan-600/20 border-cyan-500 text-cyan-300'
-                          : 'bg-[#080c14] border-slate-700 text-slate-400 hover:text-white'
+                          ? 'btn-real-cyan'
+                          : 'btn-real-secondary text-slate-400'
                       }`}
                     >
                       +{d}d
@@ -746,10 +751,10 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                       key={gb}
                       type="button"
                       onClick={() => setRenewGbToAdd(gb)}
-                      className={`flex-1 py-1.5 rounded-lg border text-xs font-mono font-medium transition-colors cursor-pointer ${
+                      className={`btn-real flex-1 py-1.5 rounded-lg border text-xs font-mono font-medium transition-colors cursor-pointer ${
                         renewGbToAdd === gb
-                          ? 'bg-cyan-600/20 border-cyan-500 text-cyan-300'
-                          : 'bg-[#080c14] border-slate-700 text-slate-400 hover:text-white'
+                          ? 'btn-real-cyan'
+                          : 'btn-real-secondary text-slate-400'
                       }`}
                     >
                       +{gb}GB
@@ -782,14 +787,14 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                 <button
                   type="button"
                   onClick={() => setRenewClientTarget(null)}
-                  className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white"
+                  className="btn-real btn-real-secondary px-4 py-2 text-xs font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={renewing}
-                  className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="btn-real btn-real-primary px-4 py-2 text-xs font-semibold rounded-lg gap-1.5"
                 >
                   {renewing && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   <span>Confirm Renewal</span>
@@ -816,13 +821,13 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
             <div className="mt-5 flex items-center justify-end gap-2.5">
               <button
                 onClick={() => setDeleteClientTarget(null)}
-                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white"
+                className="btn-real btn-real-secondary px-4 py-2 text-xs font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteClientSubmit}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                className="btn-real btn-real-danger px-4 py-2 text-xs font-semibold rounded-lg"
               >
                 Delete Client
               </button>
@@ -847,7 +852,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
               </div>
               <button
                 onClick={() => setShowAddInboundModal(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                className="btn-real btn-real-secondary p-1.5 text-slate-400 hover:text-white rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -937,14 +942,14 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowAddInboundModal(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white"
+                  className="btn-real btn-real-secondary px-4 py-2 text-xs font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingInbound}
-                  className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="btn-real btn-real-primary px-4 py-2 text-xs font-semibold rounded-lg gap-1.5"
                 >
                   {savingInbound && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   <span>Create Inbound</span>
@@ -971,13 +976,13 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
             <div className="mt-5 flex items-center justify-end gap-2.5">
               <button
                 onClick={() => setDeleteInboundTarget(null)}
-                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white"
+                className="btn-real btn-real-secondary px-4 py-2 text-xs font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteInboundSubmit}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                className="btn-real btn-real-danger px-4 py-2 text-xs font-semibold rounded-lg"
               >
                 Delete Inbound
               </button>

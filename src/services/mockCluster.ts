@@ -347,11 +347,14 @@ let startTimestamp = Date.now() - 3600 * 1000 * 24 * 14;
 
 export function getMockServerStatus(): ServerStatus {
   const uptime = Math.floor((Date.now() - startTimestamp) / 1000);
-  const cpu = Math.floor(30 + Math.random() * 8);
+  const cpu = Math.floor(22 + Math.random() * 6);
   return {
     cpu,
+    cpuCores: 4,
+    logicalPro: 4,
+    cpuSpeedMhz: 2645.032,
     mem: {
-      current: 1022554112,
+      current: 972619776 + Math.floor(Math.random() * 20000000),
       total: 6207619072,
     },
     swap: {
@@ -359,26 +362,35 @@ export function getMockServerStatus(): ServerStatus {
       total: 0,
     },
     disk: {
-      current: 3832602624,
-      total: 10558129000,
+      current: 3892105216,
+      total: 105581297664,
     },
     xray: {
       state: 'running',
       errorMsg: '',
-      version: '1.8.24',
+      version: '25.1.30',
     },
     uptime,
-    loads: [0.35, 0.42, 0.38],
-    tcpCount: 142,
-    udpCount: 68,
+    loads: [1.45, 1.38, 1.25],
+    tcpCount: 3850 + Math.floor(Math.random() * 150),
+    udpCount: 1190 + Math.floor(Math.random() * 80),
     netIO: {
-      up: 104857600,
-      down: 943718400,
+      up: 7800000 + Math.floor(Math.random() * 1200000),
+      down: 8200000 + Math.floor(Math.random() * 1400000),
     },
     netTraffic: {
-      sent: 3232557245497,
-      recv: 46843444928028,
+      sent: 14002189807051,
+      recv: 14219328248493,
     },
+    publicIP: {
+      ipv4: "173.234.14.99",
+      ipv6: "2402:a7c0:3003:102:1c00:7bff:fe00:44"
+    },
+    appStats: {
+      threads: 24,
+      mem: 93546776,
+      uptime: 154828
+    }
   };
 }
 
