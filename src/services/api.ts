@@ -122,6 +122,21 @@ export const api = {
     );
   },
 
+  async getOnlineClients(): Promise<{ success: boolean; isLive: boolean; onlines: string[]; count: number }> {
+    return safeFetchJson<{ success: boolean; isLive: boolean; onlines: string[]; count: number }>(
+      '/api/panel/onlines',
+      undefined,
+      () => {
+        return {
+          success: true,
+          isLive: false,
+          onlines: ['b6aikd1c', 'Shyai', 'Fk2'],
+          count: 3,
+        };
+      }
+    );
+  },
+
   async addInbound(payload: any) {
     return safeFetchJson<{ success: boolean; message?: string }>(
       '/api/panel/inbounds/add',

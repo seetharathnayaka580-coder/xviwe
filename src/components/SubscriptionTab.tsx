@@ -9,13 +9,14 @@ import { ClientQrModal } from './ClientQrModal';
 
 interface Props {
   inbounds: Inbound[];
+  onlineClientsList?: string[];
   onRefresh: () => void;
 }
 
-export function SubscriptionTab({ inbounds, onRefresh }: Props) {
+export function SubscriptionTab({ inbounds, onlineClientsList = [], onRefresh }: Props) {
   const [selectedInboundId, setSelectedInboundId] = useState<number>(inbounds[0]?.id || 0);
   const [clientSearch, setClientSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'online' | 'expired'>('all');
 
   // Modals state
   const [showAddClientModal, setShowAddClientModal] = useState(false);
@@ -65,7 +66,9 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
   // Filter clients
   const filteredClients = clients.filter((c) => {
     const isExp = c.expiryTime > 0 && Date.now() > c.expiryTime;
+    const isOnline = onlineClientsList.includes(c.email) || onlineClientsList.includes(c.id);
     if (statusFilter === 'active' && (!c.enable || isExp)) return false;
+    if (statusFilter === 'online' && !isOnline) return false;
     if (statusFilter === 'expired' && !isExp) return false;
 
     if (!clientSearch) return true;
@@ -375,7 +378,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
 
         {/* Status segmented control */}
         <div className="flex items-center bg-[#080c14] border border-slate-800 rounded-lg p-1 text-xs">
-          {(['all', 'active', 'expired'] as const).map((st) => (
+          {(['all', 'online', 'active', 'expired'] as const).map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
@@ -385,7 +388,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              {st}
+              {st === 'online' ? `Online (${clients.filter(c => onlineClientsList.includes(c.email)).length})` : st}
             </button>
           ))}
         </div>
@@ -419,6 +422,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                   const used = (stat?.up || 0) + (stat?.down || 0);
                   const total = client.totalGB || 107374182400;
                   const isExp = client.expiryTime > 0 && Date.now() > client.expiryTime;
+                  const isOnline = onlineClientsList.includes(client.email) || onlineClientsList.includes(client.id) || (stat && ((stat.up || 0) + (stat.down || 0) > 0));
                   const pct = Math.min(100, (used / total) * 100).toFixed(0);
 
                   return (
@@ -429,12 +433,20 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                             className={`w-2 h-2 rounded-full ${
                               isExp
                                 ? 'bg-rose-500'
+                                : isOnline
+                                ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]'
                                 : client.enable
-                                ? 'bg-emerald-400'
+                                ? 'bg-emerald-400/50'
                                 : 'bg-slate-500'
                             }`}
                           />
                           <span>{client.email}</span>
+                          {isOnline && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 font-semibold flex items-center gap-1 shadow-sm">
+                              <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                              Online
+                            </span>
+                          )}
                         </div>
                       </td>
 

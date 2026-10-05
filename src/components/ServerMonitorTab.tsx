@@ -237,10 +237,10 @@ export function ServerMonitorTab({ initialStatus, isLive }: Props) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5 font-mono">
-              CYBER TELEMETRY & HARDWARE MATRIX
+            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5 font-sans">
+              Server Telemetry & Hardware Monitor
             </h1>
-            <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 flex items-center gap-1.5 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+            <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 flex items-center gap-1.5 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               LIVE TELEMETRY
             </span>
@@ -248,7 +248,7 @@ export function ServerMonitorTab({ initialStatus, isLive }: Props) {
           <div className="flex items-center gap-2.5 text-xs text-slate-400 mt-1 font-mono">
             <span>Hardware Health, Sockets & Core Subsystem Telemetry</span>
             <span aria-hidden="true" className="text-slate-600">·</span>
-            <span className="font-mono text-cyan-300 font-medium">Ping: {pingMs}ms</span>
+            <span className="font-mono text-blue-400 font-medium">Ping: {pingMs}ms</span>
             <span aria-hidden="true" className="text-slate-600">·</span>
             <span className="font-mono text-slate-400">Synced {lastUpdated.toLocaleTimeString()}</span>
           </div>
@@ -256,9 +256,9 @@ export function ServerMonitorTab({ initialStatus, isLive }: Props) {
       </div>
 
       {/* Cluster Node Status Banner */}
-      <div className="p-5 rounded-2xl cyber-card border border-cyan-500/20 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl vpn-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-inner">
+          <div className="w-11 h-11 rounded-2xl bg-blue-950/80 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-inner">
             <Radio className="w-5 h-5 animate-pulse" />
           </div>
           <div>

@@ -8,7 +8,7 @@
 
   body {
     font-family: var(--font-sans);
-    background-color: #050811;
+    background-color: #080c16;
     color: #e2e8f0;
     overflow-x: hidden;
   }
@@ -19,33 +19,36 @@
   }
 }
 
-/* Cyber Tactical Grid Background */
-.cyber-grid-bg {
+/* Real VPN Network Mesh Background */
+.vpn-mesh-bg {
+  background-color: #080c16;
   background-image: 
-    linear-gradient(to right, rgba(6, 182, 212, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
-  background-size: 32px 32px;
+    radial-gradient(at 100% 0%, rgba(37, 99, 235, 0.08) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
 }
 
-.cyber-dots-bg {
-  background-image: radial-gradient(rgba(6, 182, 212, 0.08) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-/* Cyber Card with corner brackets & stealth border */
-.cyber-card {
+/* Real VPN Card System */
+.vpn-card {
   position: relative;
-  background: linear-gradient(180deg, #0b111e 0%, #060a14 100%);
-  border: 1px solid rgba(30, 41, 59, 0.9);
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+  background: linear-gradient(180deg, #0e1526 0%, #090e1a 100%);
+  border: 1px solid rgba(30, 41, 59, 0.95);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
-.cyber-card-glow {
-  border-color: rgba(6, 182, 212, 0.35);
-  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.8), 0 0 20px -4px rgba(6, 182, 212, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+.vpn-card-active {
+  border-color: rgba(37, 99, 235, 0.45);
+  box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.7), 0 0 24px -4px rgba(37, 99, 235, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
-/* Tactile button system: Real button feel, subtle bevel highlight, smooth compression */
+.vpn-card-connected {
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.7), 0 0 24px -4px rgba(16, 185, 129, 0.18), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+/* REAL VPN BUTTONS: Tactile depth, specular bevel, physical press feedback */
 .btn-real {
   position: relative;
   display: inline-flex;
@@ -60,63 +63,52 @@
 }
 
 .btn-real:focus-visible {
-  outline: 2px solid rgba(6, 182, 212, 0.6);
+  outline: 2px solid rgba(59, 130, 246, 0.7);
   outline-offset: 2px;
 }
 
 .btn-real:active:not(:disabled) {
-  transform: translateY(1px) scale(0.98);
+  transform: translateY(1px) scale(0.985);
 }
 
-.btn-real-primary {
-  background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 50%, #0369a1 100%);
+/* Real VPN Primary Action Button: Electric Sapphire */
+.btn-vpn-primary {
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
   color: #ffffff;
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35), 0 2px 6px -1px rgba(2, 132, 199, 0.4), 0 1px 2px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35), 0 4px 14px -2px rgba(37, 99, 235, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
 }
-.btn-real-primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 50%, #0284c7 100%);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.45), 0 4px 12px -1px rgba(2, 132, 199, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
-}
-
-.btn-real-cyber {
-  background: linear-gradient(180deg, #083344 0%, #082435 100%);
-  color: #22d3ee;
-  border: 1px solid rgba(6, 182, 212, 0.5);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 0 12px -2px rgba(6, 182, 212, 0.3), 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-.btn-real-cyber:hover:not(:disabled) {
-  background: linear-gradient(180deg, #0e4e66 0%, #083344 100%);
-  color: #a5f3fc;
-  border-color: rgba(34, 211, 238, 0.8);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 0 16px rgba(6, 182, 212, 0.5);
+.btn-vpn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.45), 0 6px 20px -2px rgba(37, 99, 235, 0.65), 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
+/* Real VPN Connected / Shield Active: Emerald Guard */
+.btn-vpn-emerald {
+  background: linear-gradient(180deg, #059669 0%, #047857 100%);
+  color: #ffffff;
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35), 0 4px 14px -2px rgba(16, 185, 129, 0.45), 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.btn-vpn-emerald:hover:not(:disabled) {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.45), 0 6px 20px -2px rgba(16, 185, 129, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Real VPN Dark Slate Neutral Button */
 .btn-real-secondary {
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  background: linear-gradient(180deg, #1a2336 0%, #0f1626 100%);
   color: #e2e8f0;
   border: 1px solid rgba(51, 65, 85, 0.9);
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 .btn-real-secondary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+  background: linear-gradient(180deg, #25334d 0%, #1a2336 100%);
   color: #ffffff;
-  border-color: rgba(100, 116, 139, 0.9);
+  border-color: rgba(100, 116, 139, 0.95);
 }
 
-.btn-real-cyan {
-  background: linear-gradient(180deg, #083344 0%, #0e2038 100%);
-  color: #67e8f9;
-  border: 1px solid rgba(6, 182, 212, 0.4);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.4);
-}
-.btn-real-cyan:hover:not(:disabled) {
-  background: linear-gradient(180deg, #0e4860 0%, #083344 100%);
-  color: #a5f3fc;
-  border-color: rgba(34, 211, 238, 0.6);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.18), 0 3px 8px rgba(6, 182, 212, 0.3);
-}
-
+/* Real VPN Danger / Disconnect Button */
 .btn-real-danger {
   background: linear-gradient(180deg, #4c0519 0%, #2a030d 100%);
   color: #fca5a5;
@@ -129,25 +121,13 @@
   border-color: rgba(251, 113, 133, 0.6);
 }
 
-.btn-real-success {
-  background: linear-gradient(180deg, #064e3b 0%, #032e25 100%);
-  color: #6ee7b7;
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.4);
-}
-.btn-real-success:hover:not(:disabled) {
-  background: linear-gradient(180deg, #047857 0%, #064e3b 100%);
-  color: #ffffff;
-  border-color: rgba(52, 211, 153, 0.6);
-}
-
-/* Custom scrollbars */
+/* Custom sleek scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #050811;
+  background: #080c16;
 }
 ::-webkit-scrollbar-thumb {
   background: #1e293b;

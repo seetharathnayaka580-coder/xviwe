@@ -508,6 +508,60 @@ app.get('/api/panel/inbounds', async (req, res) => {
   });
 });
 
+// 4b. Live Online Clients List
+app.get('/api/panel/onlines', async (req, res) => {
+  let isLive = false;
+  let onlineEmails: string[] = [];
+
+  try {
+    const loggedIn = await ensurePanelSession();
+    if (loggedIn) {
+      const resp = await callPanelApi('/panel/api/inbounds/onlines', 'POST');
+      if (resp.ok && resp.data && resp.data.success && Array.isArray(resp.data.obj)) {
+        isLive = true;
+        onlineEmails = resp.data.obj;
+      }
+    }
+  } catch (e) {
+    // proceed to fallback
+  }
+
+  if (isLive && onlineEmails.length > 0) {
+    return res.json({
+      success: true,
+      isLive: true,
+      onlines: onlineEmails,
+      count: onlineEmails.length,
+    });
+  }
+
+  // Count active online clients from live inbounds list if onlines array was empty
+  let activeClientsSet = new Set<string>();
+  try {
+    const inboundsResp = await callPanelApi('/panel/api/inbounds/list', 'GET');
+    if (inboundsResp.ok && inboundsResp.data?.obj && Array.isArray(inboundsResp.data.obj)) {
+      isLive = true;
+      inboundsResp.data.obj.forEach((ib: any) => {
+        if (Array.isArray(ib.clientStats)) {
+          ib.clientStats.forEach((cs: any) => {
+            if (cs.enable !== false && ((cs.up || 0) + (cs.down || 0) > 0)) {
+              activeClientsSet.add(cs.email);
+            }
+          });
+        }
+      });
+    }
+  } catch (e) {}
+
+  const finalOnlines = activeClientsSet.size > 0 ? Array.from(activeClientsSet) : onlineEmails;
+  return res.json({
+    success: true,
+    isLive: isLive,
+    onlines: finalOnlines,
+    count: finalOnlines.length,
+  });
+});
+
 // 5. Inbound Add
 app.post('/api/panel/inbounds/add', async (req, res) => {
   const { remark, protocol, port, network, security, streamSettings, settings } = req.body;
