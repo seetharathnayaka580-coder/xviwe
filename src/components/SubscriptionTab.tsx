@@ -409,7 +409,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                   </td>
                 </tr>
               ) : (
-                filteredClients.map((client) => {
+                filteredClients.map((client, idx) => {
                   const stat = activeInbound?.clientStats?.find((s) => s.email === client.email);
                   const used = (stat?.up || 0) + (stat?.down || 0);
                   const total = client.totalGB || 107374182400;
@@ -417,7 +417,7 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
                   const pct = Math.min(100, (used / total) * 100).toFixed(0);
 
                   return (
-                    <tr key={client.id} className="hover:bg-slate-800/40 transition-colors">
+                    <tr key={`sub-client-${client.id || client.email}-${idx}`} className="hover:bg-slate-800/40 transition-colors">
                       <td className="py-3 px-4 font-sans font-medium text-white">
                         <div className="flex items-center gap-2">
                           <span

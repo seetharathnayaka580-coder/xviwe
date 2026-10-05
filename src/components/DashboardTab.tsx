@@ -217,9 +217,9 @@ export function DashboardTab({ serverStatus, inbounds, onRefresh, onNavigateToSu
           {allClientsList.length > 0 && (
             <div className="mt-3 flex items-center gap-2 flex-wrap text-xs text-slate-400">
               <span className="text-slate-500">Quick Test UUIDs:</span>
-              {allClientsList.slice(0, 3).map(({ client }) => (
+              {allClientsList.slice(0, 3).map(({ client, inbound }, idx) => (
                 <button
-                  key={client.id}
+                  key={`quick-uuid-${inbound.id}-${client.id || client.email}-${idx}`}
                   type="button"
                   onClick={() => {
                     setSearchQuery(client.id);
@@ -438,11 +438,11 @@ export function DashboardTab({ serverStatus, inbounds, onRefresh, onNavigateToSu
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-mono text-slate-300">
-              {allClientsList.map(({ client, inbound, stat }) => {
+              {allClientsList.map(({ client, inbound, stat }, idx) => {
                 const isExp = client.expiryTime > 0 && Date.now() > client.expiryTime;
                 const used = (stat?.up || 0) + (stat?.down || 0);
                 return (
-                  <tr key={client.id} className="hover:bg-slate-800/40 transition-colors">
+                  <tr key={`client-row-${inbound.id}-${client.id || client.email}-${idx}`} className="hover:bg-slate-800/40 transition-colors">
                     <td className="py-3 px-4 font-sans font-medium text-white">
                       {client.email}
                     </td>
