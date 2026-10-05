@@ -34,8 +34,8 @@ export function DashboardTab({ serverStatus, inbounds, onRefresh, onNavigateToSu
     totalUp += ib.up || 0;
     totalDown += ib.down || 0;
     try {
-      const st = JSON.parse(ib.settings);
-      if (Array.isArray(st.clients)) {
+      const st = typeof ib.settings === 'string' ? JSON.parse(ib.settings) : ib.settings;
+      if (Array.isArray(st?.clients)) {
         totalClients += st.clients.length;
         st.clients.forEach((c: any) => {
           const stat = ib.clientStats?.find((s) => s.email === c.email);

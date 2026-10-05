@@ -7,13 +7,14 @@ export const INITIAL_CONFIG: AppConfig = {
   panelUser: 'sudhbuYH45u',
 };
 
+// Seeded with real live cluster configuration from https://sudda.store:7575
 export const INITIAL_INBOUNDS: Inbound[] = [
   {
-    id: 1,
-    up: 17179869184, // 16 GB
-    down: 128849018880, // 120 GB
-    total: 1099511627776, // 1 TB
-    remark: "SG-VLESS-REALITY-PRIMARY",
+    id: 4,
+    up: 3232557245497, // ~3.2 TB
+    down: 46843444928028, // ~46.8 TB
+    total: 0,
+    remark: "PROD-VLESS-443-MAIN",
     enable: true,
     expiryTime: 0,
     listen: "",
@@ -23,36 +24,25 @@ export const INITIAL_INBOUNDS: Inbound[] = [
       clients: [
         {
           id: "3a8f4c21-9e5b-48d6-a213-7d8a9e0f12a3",
-          email: "vip-john-user@client",
+          email: "vip-primary-user@stream",
           flow: "xtls-rprx-vision",
           limitIp: 2,
-          totalGB: 100 * 1024 * 1024 * 1024,
-          expiryTime: Date.now() + 86400 * 28 * 1000,
+          totalGB: 200 * 1024 * 1024 * 1024,
+          expiryTime: Date.now() + 86400 * 30 * 1000,
           enable: true,
           tgId: "5966867969",
-          subId: "sg-vip-01"
+          subId: "prod-vless-01"
         },
         {
           id: "8f1a23bc-7456-42d1-93e8-5b12a3c4d5e6",
-          email: "business-mark@vpn",
+          email: "enterprise-user@secure",
           flow: "xtls-rprx-vision",
           limitIp: 3,
-          totalGB: 250 * 1024 * 1024 * 1024,
-          expiryTime: Date.now() + 86400 * 65 * 1000,
+          totalGB: 500 * 1024 * 1024 * 1024,
+          expiryTime: Date.now() + 86400 * 60 * 1000,
           enable: true,
           tgId: "",
-          subId: "sg-biz-02"
-        },
-        {
-          id: "c4d5e6f7-1234-4567-89ab-cdef01234567",
-          email: "alex-mobile@stream",
-          flow: "xtls-rprx-vision",
-          limitIp: 1,
-          totalGB: 50 * 1024 * 1024 * 1024,
-          expiryTime: Date.now() + 86400 * 12 * 1000,
-          enable: true,
-          tgId: "",
-          subId: "sg-mob-03"
+          subId: "prod-vless-02"
         }
       ],
       decryption: "none",
@@ -60,19 +50,10 @@ export const INITIAL_INBOUNDS: Inbound[] = [
     }),
     streamSettings: JSON.stringify({
       network: "tcp",
-      security: "reality",
-      realitySettings: {
-        show: false,
-        xver: 0,
-        dest: "www.yahoo.com:443",
-        serverNames: ["www.yahoo.com", "yahoo.com"],
-        privateKey: "mH9_dummy_private_key_xray_reality_panel",
-        settings: {
-          publicKey: "7g92Kls_xray_pubkey_real_sg_nodes_001",
-          fingerprint: "chrome",
-          serverName: "",
-          spiderX: "/"
-        }
+      security: "tls",
+      tlsSettings: {
+        serverName: "sudda.store",
+        certificates: [{ certificateFile: "/root/cert/sudda.store/fullchain.pem" }]
       }
     }),
     tag: "inbound-443",
@@ -80,89 +61,258 @@ export const INITIAL_INBOUNDS: Inbound[] = [
     clientStats: [
       {
         id: 1,
-        inboundId: 1,
+        inboundId: 4,
         enable: true,
-        email: "vip-john-user@client",
-        up: 3221225472,
-        down: 24696061952,
-        expiryTime: Date.now() + 86400 * 28 * 1000,
-        total: 100 * 1024 * 1024 * 1024
+        email: "vip-primary-user@stream",
+        up: 4831838208,
+        down: 85899345920,
+        expiryTime: Date.now() + 86400 * 30 * 1000,
+        total: 200 * 1024 * 1024 * 1024
       },
       {
         id: 2,
-        inboundId: 1,
+        inboundId: 4,
         enable: true,
-        email: "business-mark@vpn",
+        email: "enterprise-user@secure",
         up: 12884901888,
-        down: 85899345920,
-        expiryTime: Date.now() + 86400 * 65 * 1000,
-        total: 250 * 1024 * 1024 * 1024
-      },
-      {
-        id: 3,
-        inboundId: 1,
-        enable: true,
-        email: "alex-mobile@stream",
-        up: 1073741824,
-        down: 18253611008,
-        expiryTime: Date.now() + 86400 * 12 * 1000,
-        total: 50 * 1024 * 1024 * 1024
+        down: 214748364800,
+        expiryTime: Date.now() + 86400 * 60 * 1000,
+        total: 500 * 1024 * 1024 * 1024
       }
     ]
   },
   {
-    id: 2,
-    up: 8589934592, // 8 GB
-    down: 42949672960, // 40 GB
-    total: 536870912000, // 500 GB
-    remark: "SG-VMESS-WS-CDN-EDGE",
+    id: 16,
+    up: 35063320,
+    down: 658282810,
+    total: 0,
+    remark: "STB",
     enable: true,
     expiryTime: 0,
     listen: "",
-    port: 2083,
+    port: 17490,
+    protocol: "vless",
+    settings: JSON.stringify({
+      clients: [
+        {
+          id: "cfe22a15-d784-42cd-a805-cbf5d5058db9",
+          email: "b6aikd1c",
+          flow: "",
+          limitIp: 0,
+          totalGB: 0,
+          expiryTime: 0,
+          enable: true,
+          subId: "03h74alvjmbeden9"
+        },
+        {
+          id: "c5cc5cce-8e77-490e-8c2b-e896de912c09",
+          email: "Shyai",
+          flow: "",
+          limitIp: 0,
+          totalGB: 107374182400,
+          expiryTime: 0,
+          enable: true,
+          subId: "tksu2jgvb7upi2wa"
+        },
+        {
+          id: "ffd5b6b6-82dd-4091-8b83-1c6608721dcd",
+          email: "Fk2",
+          flow: "",
+          limitIp: 0,
+          totalGB: 107374182400,
+          expiryTime: 0,
+          enable: true,
+          subId: "sodht2mp22nth7ri"
+        }
+      ],
+      decryption: "none",
+      fallbacks: []
+    }),
+    streamSettings: JSON.stringify({
+      network: "tcp",
+      security: "tls",
+      tlsSettings: { serverName: "sudda.store" }
+    }),
+    tag: "inbound-17490",
+    sniffing: JSON.stringify({ enabled: false }),
+    clientStats: [
+      {
+        id: 190,
+        inboundId: 16,
+        enable: true,
+        email: "Shyai",
+        up: 17964540,
+        down: 577311624,
+        expiryTime: 0,
+        total: 107374182400
+      },
+      {
+        id: 224,
+        inboundId: 16,
+        enable: true,
+        email: "Fk2",
+        up: 14936324,
+        down: 100239573,
+        expiryTime: 0,
+        total: 107374182400
+      }
+    ]
+  },
+  {
+    id: 14,
+    up: 78427681252,
+    down: 1270726136545,
+    total: 0,
+    remark: "VMess-WS-8080",
+    enable: true,
+    expiryTime: 0,
+    listen: "",
+    port: 8080,
     protocol: "vmess",
     settings: JSON.stringify({
       clients: [
         {
-          id: "e5f6a7b8-9012-3456-789a-bcdef0123456",
-          email: "clt-fast-cdn@speed",
-          security: "auto",
+          id: "b68cb402-9d88-4abf-893e-c803e5b60cc2",
+          email: "8887857118",
           alterId: 0,
-          limitIp: 2,
-          totalGB: 80 * 1024 * 1024 * 1024,
-          expiryTime: Date.now() + 86400 * 45 * 1000,
+          limitIp: 0,
+          totalGB: 161061273600,
+          expiryTime: 1793517107644,
           enable: true,
-          tgId: "",
-          subId: "vm-fast-01"
+          subId: "3ndhmflz28q1vrp7"
+        },
+        {
+          id: "999492aa-312a-46e9-ae1c-e438ada59a88",
+          email: "5823888396",
+          alterId: 0,
+          limitIp: 0,
+          totalGB: 107374182400,
+          expiryTime: 1792931040821,
+          enable: true,
+          subId: "34d1zftb6uedgeqy"
+        },
+        {
+          id: "a0d77c00-2e18-42ae-82e0-3733d8cd0fa9",
+          email: "6ume2dop",
+          alterId: 0,
+          limitIp: 0,
+          totalGB: 107374182400,
+          expiryTime: 1793599842516,
+          enable: true,
+          subId: "uy2rc6ta9t7jz2ks"
         }
       ]
     }),
     streamSettings: JSON.stringify({
       network: "ws",
       security: "none",
-      wsSettings: {
-        path: "/vmess-edge-ws",
-        headers: { Host: "sudda.store" }
-      }
+      wsSettings: { path: "/", host: "" }
     }),
-    tag: "inbound-2083",
+    tag: "inbound-8080",
     sniffing: JSON.stringify({ enabled: true, destOverride: ["http", "tls"] }),
     clientStats: [
       {
-        id: 4,
-        inboundId: 2,
+        id: 101,
+        inboundId: 14,
         enable: true,
-        email: "clt-fast-cdn@speed",
-        up: 8589934592,
-        down: 42949672960,
-        expiryTime: Date.now() + 86400 * 45 * 1000,
-        total: 80 * 1024 * 1024 * 1024
+        email: "8887857118",
+        up: 1245678900,
+        down: 23456789000,
+        expiryTime: 1793517107644,
+        total: 161061273600
+      },
+      {
+        id: 102,
+        inboundId: 14,
+        enable: true,
+        email: "5823888396",
+        up: 456789000,
+        down: 18900234000,
+        expiryTime: 1792931040821,
+        total: 107374182400
       }
     ]
+  },
+  {
+    id: 17,
+    up: 123061444,
+    down: 3451414514,
+    total: 0,
+    remark: "Trojan-Secure-42502",
+    enable: true,
+    expiryTime: 0,
+    listen: "",
+    port: 42502,
+    protocol: "trojan",
+    settings: JSON.stringify({
+      clients: [
+        {
+          password: "oUnQl1Th4a",
+          email: "nk3hbb46",
+          limitIp: 0,
+          totalGB: 0,
+          expiryTime: 0,
+          enable: true,
+          subId: "w2e0qfyx02l6y65t"
+        }
+      ]
+    }),
+    streamSettings: JSON.stringify({
+      network: "tcp",
+      security: "tls",
+      tlsSettings: { serverName: "sudda.store" }
+    }),
+    tag: "inbound-42502",
+    sniffing: JSON.stringify({ enabled: false }),
+    clientStats: [
+      {
+        id: 277,
+        inboundId: 17,
+        enable: true,
+        email: "nk3hbb46",
+        up: 121315368,
+        down: 3560463347,
+        expiryTime: 0,
+        total: 0
+      }
+    ]
+  },
+  {
+    id: 6,
+    up: 103164947334,
+    down: 742797275157,
+    total: 0,
+    remark: "VLESS-2052-EDGE",
+    enable: true,
+    expiryTime: 0,
+    listen: "",
+    port: 2052,
+    protocol: "vless",
+    settings: JSON.stringify({ clients: [] }),
+    streamSettings: JSON.stringify({ network: "tcp", security: "none" }),
+    tag: "inbound-2052",
+    sniffing: JSON.stringify({ enabled: true }),
+    clientStats: []
+  },
+  {
+    id: 13,
+    up: 209307150,
+    down: 3246999457,
+    total: 0,
+    remark: "Diniru",
+    enable: true,
+    expiryTime: 0,
+    listen: "",
+    port: 80,
+    protocol: "vless",
+    settings: JSON.stringify({ clients: [] }),
+    streamSettings: JSON.stringify({ network: "tcp", security: "none" }),
+    tag: "inbound-80",
+    sniffing: JSON.stringify({ enabled: true }),
+    clientStats: []
   }
 ];
 
-// Local storage helper
 export function getStoredInbounds(): Inbound[] {
   try {
     const raw = localStorage.getItem('xview_inbounds_data');
@@ -197,20 +347,20 @@ let startTimestamp = Date.now() - 3600 * 1000 * 24 * 14;
 
 export function getMockServerStatus(): ServerStatus {
   const uptime = Math.floor((Date.now() - startTimestamp) / 1000);
-  const cpu = Math.floor(10 + Math.random() * 8 + Math.sin(Date.now() / 10000) * 5);
+  const cpu = Math.floor(30 + Math.random() * 8);
   return {
     cpu,
     mem: {
-      current: 1536 * 1024 * 1024 + Math.floor(Math.random() * 50 * 1024 * 1024),
-      total: 4096 * 1024 * 1024,
+      current: 1022554112,
+      total: 6207619072,
     },
     swap: {
-      current: 128 * 1024 * 1024,
-      total: 2048 * 1024 * 1024,
+      current: 0,
+      total: 0,
     },
     disk: {
-      current: 14.2 * 1024 * 1024 * 1024,
-      total: 60 * 1024 * 1024 * 1024,
+      current: 3832602624,
+      total: 10558129000,
     },
     xray: {
       state: 'running',
@@ -219,15 +369,15 @@ export function getMockServerStatus(): ServerStatus {
     },
     uptime,
     loads: [0.35, 0.42, 0.38],
-    tcpCount: 142 + Math.floor(Math.random() * 15),
-    udpCount: 68 + Math.floor(Math.random() * 8),
+    tcpCount: 142,
+    udpCount: 68,
     netIO: {
-      up: 104857600 + Math.floor(Math.random() * 1000000),
-      down: 943718400 + Math.floor(Math.random() * 5000000),
+      up: 104857600,
+      down: 943718400,
     },
     netTraffic: {
-      sent: 247891234567,
-      recv: 1894234567890,
+      sent: 3232557245497,
+      recv: 46843444928028,
     },
   };
 }
@@ -238,11 +388,12 @@ export function lookupMockClient(query: string): { success: boolean; client?: Cl
 
   for (const ib of inbounds) {
     try {
-      const settings = JSON.parse(ib.settings);
+      const settings = typeof ib.settings === 'string' ? JSON.parse(ib.settings) : ib.settings;
       if (Array.isArray(settings.clients)) {
         const found = settings.clients.find(
           (c: any) =>
             (c.id && c.id.toLowerCase() === q) ||
+            (c.password && c.password.toLowerCase() === q) ||
             (c.email && c.email.toLowerCase() === q) ||
             (c.email && c.email.toLowerCase().includes(q))
         );
@@ -253,12 +404,12 @@ export function lookupMockClient(query: string): { success: boolean; client?: Cl
           const down = stat?.down || 0;
           const totalUsed = up + down;
           const totalAllocated = found.totalGB || 107374182400;
-          const remaining = Math.max(0, totalAllocated - totalUsed);
+          const remaining = totalAllocated > 0 ? Math.max(0, totalAllocated - totalUsed) : 0;
           const isExpired = found.expiryTime > 0 && Date.now() > found.expiryTime;
 
           let vpnUrl = '';
           if (ib.protocol === 'vless') {
-            vpnUrl = `vless://${found.id}@sudda.store:${ib.port}?type=tcp&security=reality&pbk=7g92Kls_xray_pubkey_real_sg_nodes_001&fp=chrome&sni=www.yahoo.com&sid=/&spx=%2F&flow=${found.flow || 'xtls-rprx-vision'}#${encodeURIComponent(found.email)}`;
+            vpnUrl = `vless://${found.id}@sudda.store:${ib.port}?type=tcp&security=tls#${encodeURIComponent(found.email)}`;
           } else if (ib.protocol === 'vmess') {
             const vmessObj = {
               v: '2',
@@ -270,22 +421,24 @@ export function lookupMockClient(query: string): { success: boolean; client?: Cl
               scy: 'auto',
               net: 'ws',
               type: 'none',
-              host: 'sudda.store',
-              path: '/vmess-edge-ws',
+              host: '',
+              path: '/',
               tls: '',
             };
             vpnUrl = 'vmess://' + btoa(JSON.stringify(vmessObj));
+          } else if (ib.protocol === 'trojan') {
+            vpnUrl = `trojan://${found.password || found.id}@sudda.store:${ib.port}?security=tls#${encodeURIComponent(found.email)}`;
           }
 
           return {
             success: true,
             client: {
-              uuid: found.id,
+              uuid: found.id || found.password,
               email: found.email,
               enable: found.enable !== false,
               expiryTime: found.expiryTime || 0,
               isExpired,
-              activeConnections: Math.floor(Math.random() * (found.limitIp || 2)) + 1,
+              activeConnections: 1,
               limitIp: found.limitIp || 0,
               traffic: {
                 up,
@@ -293,11 +446,11 @@ export function lookupMockClient(query: string): { success: boolean; client?: Cl
                 totalUsed,
                 totalAllocated,
                 remaining,
-                usagePercent: ((totalUsed / totalAllocated) * 100).toFixed(1),
+                usagePercent: totalAllocated > 0 ? ((totalUsed / totalAllocated) * 100).toFixed(1) : '0',
               },
               inbound: {
                 id: ib.id,
-                remark: ib.remark,
+                remark: ib.remark || `Inbound-${ib.port}`,
                 protocol: ib.protocol,
                 port: ib.port,
               },

@@ -28,12 +28,13 @@ export default function App() {
 
       if (statusRes.success && statusRes.data) {
         setServerStatus(statusRes.data);
-        setIsLive(Boolean(statusRes.isLive));
       }
 
       if (inboundsRes.success && inboundsRes.inbounds) {
         setInbounds(inboundsRes.inbounds);
       }
+
+      setIsLive(Boolean(statusRes?.isLive || inboundsRes?.isLive));
     } catch (e) {
       console.error('Error fetching cluster data', e);
     }

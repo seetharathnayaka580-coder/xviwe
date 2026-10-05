@@ -57,8 +57,8 @@ export function SubscriptionTab({ inbounds, onRefresh }: Props) {
   let clients: Client[] = [];
   try {
     if (activeInbound) {
-      const st = JSON.parse(activeInbound.settings);
-      clients = Array.isArray(st.clients) ? st.clients : [];
+      const st = typeof activeInbound.settings === 'string' ? JSON.parse(activeInbound.settings) : activeInbound.settings;
+      clients = Array.isArray(st?.clients) ? st.clients : [];
     }
   } catch (e) {}
 
