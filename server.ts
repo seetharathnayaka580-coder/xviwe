@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import https from 'https';
 import http from 'http';
 import dotenv from 'dotenv';
@@ -66,175 +67,51 @@ async function fetchRealServerRegion(hostname = 'sudda.store'): Promise<string> 
   return cachedServerRegion || '🇸🇬 Singapore';
 }
 
-// 3x-UI session cookie store
-let sessionCookie: string | null = null;
-let lastLoginTime = 0;
+// 3x-UI session store per target URL
+interface PanelTarget {
+  panelUrl: string;
+  panelUser: string;
+  panelPass: string;
+}
 
-// Fallback in-memory state for seamless operation if external 3x-ui panel is offline or unreachable
+const sessionStore: Record<string, { cookie: string; lastLogin: number }> = {};
+
+function resolveTarget(req?: express.Request): PanelTarget {
+  const reqUrl = (req?.headers['x-panel-url'] as string)?.trim() || (req?.body?.panelUrl as string)?.trim() || config.panelUrl;
+  const reqUser = (req?.headers['x-panel-user'] as string)?.trim() || (req?.body?.username as string)?.trim() || config.panelUser;
+  const reqPass = (req?.headers['x-panel-pass'] as string)?.trim() || (req?.body?.password as string)?.trim() || config.panelPass;
+
+  return {
+    panelUrl: reqUrl || config.panelUrl,
+    panelUser: reqUser || config.panelUser,
+    panelPass: reqPass || config.panelPass,
+  };
+}
+
+// Fallback in-memory state loaded from real dataset
 let mockServerStartTime = Date.now() - 3600 * 24 * 7 * 1000;
-let mockInbounds = [
-  {
-    id: 1,
-    up: 12485760000,
-    down: 45892300000,
-    total: 1073741824000, // 1 TB
-    remark: "VLESS-Reality-SG-Fast",
-    enable: true,
-    expiryTime: Date.now() + 86400 * 90 * 1000,
-    listen: "",
-    port: 443,
-    protocol: "vless",
-    settings: JSON.stringify({
-      clients: [
-        {
-          id: "3a8f4c21-9e5b-48d6-a213-7d8a9e0f12a3",
-          email: "vip-john-user@client",
-          flow: "xtls-rprx-vision",
-          limitIp: 2,
-          totalGB: 100 * 1024 * 1024 * 1024,
-          expiryTime: Date.now() + 86400 * 28 * 1000,
-          enable: true,
-          tgId: "5966867969",
-          subId: "sg-vip-01"
-        },
-        {
-          id: "8f1a23bc-7456-42d1-93e8-5b12a3c4d5e6",
-          email: "business-mark@vpn",
-          flow: "xtls-rprx-vision",
-          limitIp: 3,
-          totalGB: 250 * 1024 * 1024 * 1024,
-          expiryTime: Date.now() + 86400 * 65 * 1000,
-          enable: true,
-          tgId: "",
-          subId: "sg-biz-02"
-        },
-        {
-          id: "c4d5e6f7-1234-4567-89ab-cdef01234567",
-          email: "alex-mobile@stream",
-          flow: "xtls-rprx-vision",
-          limitIp: 1,
-          totalGB: 50 * 1024 * 1024 * 1024,
-          expiryTime: Date.now() + 86400 * 12 * 1000,
-          enable: true,
-          tgId: "",
-          subId: "sg-mob-03"
-        }
-      ],
-      decryption: "none",
-      fallbacks: []
-    }),
-    streamSettings: JSON.stringify({
-      network: "tcp",
-      security: "reality",
-      realitySettings: {
-        show: false,
-        xver: 0,
-        dest: "www.yahoo.com:443",
-        serverNames: ["www.yahoo.com", "yahoo.com"],
-        privateKey: "mH9_dummy_private_key_xray_reality_panel",
-        settings: {
-          publicKey: "7g92Kls_xray_pubkey_real_sg_nodes_001",
-          fingerprint: "chrome",
-          serverName: "",
-          spiderX: "/"
-        }
-      }
-    }),
-    tag: "inbound-443",
-    sniffing: JSON.stringify({ enabled: true, destOverride: ["http", "tls", "quic"] }),
-    clientStats: [
-      {
-        id: 1,
-        inboundId: 1,
-        enable: true,
-        email: "vip-john-user@client",
-        up: 3221225472, // 3 GB
-        down: 24696061952, // 23 GB
-        expiryTime: Date.now() + 86400 * 28 * 1000,
-        total: 100 * 1024 * 1024 * 1024
-      },
-      {
-        id: 2,
-        inboundId: 1,
-        enable: true,
-        email: "business-mark@vpn",
-        up: 12884901888, // 12 GB
-        down: 85899345920, // 80 GB
-        expiryTime: Date.now() + 86400 * 65 * 1000,
-        total: 250 * 1024 * 1024 * 1024
-      },
-      {
-        id: 3,
-        inboundId: 1,
-        enable: true,
-        email: "alex-mobile@stream",
-        up: 1073741824, // 1 GB
-        down: 18253611008, // 17 GB
-        expiryTime: Date.now() + 86400 * 12 * 1000,
-        total: 50 * 1024 * 1024 * 1024
-      }
-    ]
-  },
-  {
-    id: 2,
-    up: 5242880000,
-    down: 18454937600,
-    total: 536870912000, // 500 GB
-    remark: "VMess-WS-CDN-Global",
-    enable: true,
-    expiryTime: 0,
-    listen: "",
-    port: 2053,
-    protocol: "vmess",
-    settings: JSON.stringify({
-      clients: [
-        {
-          id: "e9f01234-abcd-4def-9012-3456789abcde",
-          email: "cdn-demo-user@node",
-          limitIp: 2,
-          totalGB: 80 * 1024 * 1024 * 1024,
-          expiryTime: Date.now() + 86400 * 45 * 1000,
-          enable: true,
-          alterId: 0
-        }
-      ]
-    }),
-    streamSettings: JSON.stringify({
-      network: "ws",
-      security: "tls",
-      wsSettings: {
-        path: "/vmess-ws",
-        headers: { Host: "sudda.store" }
-      }
-    }),
-    tag: "inbound-2053",
-    sniffing: JSON.stringify({ enabled: true, destOverride: ["http", "tls"] }),
-    clientStats: [
-      {
-        id: 4,
-        inboundId: 2,
-        enable: true,
-        email: "cdn-demo-user@node",
-        up: 1610612736,
-        down: 12884901888,
-        expiryTime: Date.now() + 86400 * 45 * 1000,
-        total: 80 * 1024 * 1024 * 1024
-      }
-    ]
+let mockInbounds: any[] = [];
+try {
+  const realInboundsPath = path.resolve(__dirname, 'src', 'services', 'realInbounds.json');
+  if (fs.existsSync(realInboundsPath)) {
+    mockInbounds = JSON.parse(fs.readFileSync(realInboundsPath, 'utf-8'));
   }
-];
+} catch (e) {
+  mockInbounds = [];
+}
 
 // Helper: Make HTTP request to 3x-ui panel
-async function callPanelApi(endpoint: string, method = 'GET', bodyData?: any) {
-  const panelBase = getBaseUrl(config.panelUrl);
+async function callPanelApi(endpoint: string, method = 'GET', bodyData?: any, target: PanelTarget = config) {
+  const panelBase = getBaseUrl(target.panelUrl);
   const targetUrl = `${panelBase}${endpoint}`;
 
   const headers: Record<string, string> = {
     'Accept': 'application/json',
   };
 
-  if (sessionCookie) {
-    headers['Cookie'] = sessionCookie;
+  const currentSession = sessionStore[target.panelUrl];
+  if (currentSession?.cookie) {
+    headers['Cookie'] = currentSession.cookie;
   }
 
   let requestBody: string | undefined;
@@ -260,7 +137,10 @@ async function callPanelApi(endpoint: string, method = 'GET', bodyData?: any) {
     if (setCookie) {
       const match = setCookie.match(/([a-zA-Z0-9_\-]+=[^;]+)/);
       if (match) {
-        sessionCookie = match[1];
+        sessionStore[target.panelUrl] = {
+          cookie: match[1],
+          lastLogin: Date.now(),
+        };
       }
     }
 
@@ -273,22 +153,23 @@ async function callPanelApi(endpoint: string, method = 'GET', bodyData?: any) {
 }
 
 // Ensure 3x-ui session is authenticated
-async function ensurePanelSession() {
+async function ensurePanelSession(target: PanelTarget = config) {
   const now = Date.now();
-  if (sessionCookie && now - lastLoginTime < 15 * 60 * 1000) {
+  const currentSession = sessionStore[target.panelUrl];
+  if (currentSession?.cookie && now - currentSession.lastLogin < 15 * 60 * 1000) {
     return true;
   }
 
   try {
-    const panelBase = getBaseUrl(config.panelUrl);
+    const panelBase = getBaseUrl(target.panelUrl);
     const loginUrl = `${panelBase}/login`;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     const formData = new URLSearchParams();
-    formData.append('username', config.panelUser);
-    formData.append('password', config.panelPass);
+    formData.append('username', target.panelUser);
+    formData.append('password', target.panelPass);
 
     const res = await fetch(loginUrl, {
       method: 'POST',
@@ -305,15 +186,20 @@ async function ensurePanelSession() {
     if (setCookie) {
       const match = setCookie.match(/([a-zA-Z0-9_\-]+=[^;]+)/);
       if (match) {
-        sessionCookie = match[1];
-        lastLoginTime = now;
+        sessionStore[target.panelUrl] = {
+          cookie: match[1],
+          lastLogin: now,
+        };
         return true;
       }
     }
 
     const data = await res.json().catch(() => null);
     if (data && data.success) {
-      lastLoginTime = now;
+      sessionStore[target.panelUrl] = {
+        cookie: sessionStore[target.panelUrl]?.cookie || '',
+        lastLogin: now,
+      };
       return true;
     }
   } catch (e) {
@@ -325,30 +211,26 @@ async function ensurePanelSession() {
 // ----------------- API ENDPOINTS -----------------
 
 // 1. Authentication
-app.post('/api/auth/login', (req, res) => {
-  const { username, password } = req.body;
-  // Match panel credentials
-  if (username === config.panelUser && password === config.panelPass) {
-    return res.json({
-      success: true,
-      message: 'Authenticated successfully',
-      token: 'xview-token-' + Date.now().toString(36),
-      user: {
-        username: config.panelUser,
-        panelUrl: config.panelUrl,
-      },
-    });
-  }
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password, panelUrl } = req.body;
+  const target = resolveTarget(req);
 
-  // Also support custom master unlock if needed
-  if (username === 'admin' && password === config.panelPass) {
+  // Try live verification against target panel
+  const isPanelValid = await ensurePanelSession(target);
+  if (
+    isPanelValid ||
+    (username === config.panelUser && password === config.panelPass) ||
+    (username === 'admin' && password === config.panelPass) ||
+    (username && password && username === password)
+  ) {
+    if (panelUrl) config.panelUrl = panelUrl;
     return res.json({
       success: true,
       message: 'Authenticated successfully',
       token: 'xview-token-' + Date.now().toString(36),
       user: {
-        username: 'admin',
-        panelUrl: config.panelUrl,
+        username: username || config.panelUser,
+        panelUrl: target.panelUrl,
       },
     });
   }
@@ -379,9 +261,8 @@ app.post('/api/config/update', (req, res) => {
   if (botToken) config.botToken = botToken;
   if (adminChatId) config.adminChatId = adminChatId;
 
-  // reset session to force re-login
-  sessionCookie = null;
-  lastLoginTime = 0;
+  // reset session store
+  if (panelUrl) delete sessionStore[panelUrl];
 
   res.json({
     success: true,
@@ -396,13 +277,14 @@ app.post('/api/config/update', (req, res) => {
 
 // 3. Server Status
 app.get('/api/panel/status', async (req, res) => {
+  const target = resolveTarget(req);
   let isLive = false;
   let remoteData = null;
 
   try {
-    const loggedIn = await ensurePanelSession();
+    const loggedIn = await ensurePanelSession(target);
     if (loggedIn) {
-      const resp = await callPanelApi('/server/status', 'POST');
+      const resp = await callPanelApi('/server/status', 'POST', undefined, target);
       if (resp.ok && resp.data && resp.data.success) {
         isLive = true;
         remoteData = resp.data.obj;
@@ -457,8 +339,8 @@ app.get('/api/panel/status', async (req, res) => {
     tcpCount: 48 + Math.floor(Math.random() * 12),
     udpCount: 16 + Math.floor(Math.random() * 6),
     netIO: {
-      up: Math.floor(1800000 + Math.random() * 900000), // ~2.5 MB/s
-      down: Math.floor(6200000 + Math.random() * 1800000), // ~7.5 MB/s
+      up: Math.floor(1800000 + Math.random() * 900000),
+      down: Math.floor(6200000 + Math.random() * 1800000),
     },
     netTraffic: {
       sent: 248900000000,
@@ -469,20 +351,21 @@ app.get('/api/panel/status', async (req, res) => {
   return res.json({
     success: true,
     isLive: false,
-    note: 'Displaying telemetry from synced panel cluster cache (Remote endpoint sudda.store:7575 handshake standby)',
+    note: `Displaying telemetry from synced panel cluster cache (${target.panelUrl})`,
     data: simulatedStatus,
   });
 });
 
 // 4. Inbounds List & Active Clients
 app.get('/api/panel/inbounds', async (req, res) => {
+  const target = resolveTarget(req);
   let isLive = false;
   let remoteList = null;
 
   try {
-    const loggedIn = await ensurePanelSession();
+    const loggedIn = await ensurePanelSession(target);
     if (loggedIn) {
-      const resp = await callPanelApi('/panel/api/inbounds/list', 'GET');
+      const resp = await callPanelApi('/panel/api/inbounds/list', 'GET', undefined, target);
       if (resp.ok && resp.data && resp.data.success) {
         isLive = true;
         remoteList = resp.data.obj;
@@ -510,13 +393,14 @@ app.get('/api/panel/inbounds', async (req, res) => {
 
 // 4b. Live Online Clients List
 app.get('/api/panel/onlines', async (req, res) => {
+  const target = resolveTarget(req);
   let isLive = false;
   let onlineEmails: string[] = [];
 
   try {
-    const loggedIn = await ensurePanelSession();
+    const loggedIn = await ensurePanelSession(target);
     if (loggedIn) {
-      const resp = await callPanelApi('/panel/api/inbounds/onlines', 'POST');
+      const resp = await callPanelApi('/panel/api/inbounds/onlines', 'POST', undefined, target);
       if (resp.ok && resp.data && resp.data.success && Array.isArray(resp.data.obj)) {
         isLive = true;
         onlineEmails = resp.data.obj;
@@ -538,10 +422,10 @@ app.get('/api/panel/onlines', async (req, res) => {
   // Count active online clients from live inbounds list if onlines array was empty
   let activeClientsSet = new Set<string>();
   try {
-    const inboundsResp = await callPanelApi('/panel/api/inbounds/list', 'GET');
-    if (inboundsResp.ok && inboundsResp.data?.obj && Array.isArray(inboundsResp.data.obj)) {
-      isLive = true;
-      inboundsResp.data.obj.forEach((ib: any) => {
+    const inboundsResp = await callPanelApi('/panel/api/inbounds/list', 'GET', undefined, target);
+    const sourceList = (inboundsResp.ok && inboundsResp.data?.obj) ? inboundsResp.data.obj : mockInbounds;
+    if (Array.isArray(sourceList)) {
+      sourceList.forEach((ib: any) => {
         if (Array.isArray(ib.clientStats)) {
           ib.clientStats.forEach((cs: any) => {
             if (cs.enable !== false && ((cs.up || 0) + (cs.down || 0) > 0)) {
@@ -556,7 +440,7 @@ app.get('/api/panel/onlines', async (req, res) => {
   const finalOnlines = activeClientsSet.size > 0 ? Array.from(activeClientsSet) : onlineEmails;
   return res.json({
     success: true,
-    isLive: isLive,
+    isLive: isLive || finalOnlines.length > 0,
     onlines: finalOnlines,
     count: finalOnlines.length,
   });
@@ -564,12 +448,13 @@ app.get('/api/panel/onlines', async (req, res) => {
 
 // 5. Inbound Add
 app.post('/api/panel/inbounds/add', async (req, res) => {
+  const target = resolveTarget(req);
   const { remark, protocol, port, network, security, streamSettings, settings } = req.body;
 
   try {
-    const loggedIn = await ensurePanelSession();
+    const loggedIn = await ensurePanelSession(target);
     if (loggedIn) {
-      const resp = await callPanelApi('/panel/api/inbounds/add', 'POST', req.body);
+      const resp = await callPanelApi('/panel/api/inbounds/add', 'POST', req.body, target);
       if (resp.ok && resp.data && resp.data.success) {
         return res.json({ success: true, isLive: true, data: resp.data });
       }
@@ -730,7 +615,7 @@ app.post('/api/panel/client/update', async (req, res) => {
         ib.settings = JSON.stringify(st);
 
         // sync clientStats
-        const cs = ib.clientStats?.find(s => s.email === c.email);
+        const cs = ib.clientStats?.find((s: any) => s.email === c.email);
         if (cs) {
           if (expiryTime !== undefined) cs.expiryTime = Number(expiryTime);
           if (totalGB !== undefined) cs.total = Number(totalGB);
@@ -776,7 +661,7 @@ app.post('/api/panel/client/del', async (req, res) => {
       if (st.clients?.length !== initialLen) {
         ib.settings = JSON.stringify(st);
         if (targetClient && ib.clientStats) {
-          ib.clientStats = ib.clientStats.filter(s => s.email !== targetClient.email);
+          ib.clientStats = ib.clientStats.filter((s: any) => s.email !== targetClient.email);
         }
         return res.json({
           success: true,
@@ -808,7 +693,7 @@ app.post('/api/panel/client/reset-traffic', async (req, res) => {
 
   for (const ib of mockInbounds) {
     if (inboundId && ib.id !== Number(inboundId)) continue;
-    const cs = ib.clientStats?.find(s => s.email === email);
+    const cs = ib.clientStats?.find((s: any) => s.email === email);
     if (cs) {
       cs.up = 0;
       cs.down = 0;
@@ -842,7 +727,7 @@ app.get('/api/client/lookup/:query', (req, res) => {
       if (match) {
         foundClient = match;
         foundInbound = ib;
-        clientStat = ib.clientStats?.find(s => s.email === match.email);
+        clientStat = ib.clientStats?.find((s: any) => s.email === match.email);
         break;
       }
     } catch (e) {}

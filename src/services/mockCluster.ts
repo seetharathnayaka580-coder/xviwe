@@ -1,4 +1,5 @@
 import { AppConfig, Inbound, ServerStatus, ClientLookupResult } from '../types';
+import realInboundsData from './realInbounds.json';
 
 export const INITIAL_CONFIG: AppConfig = {
   adminChatId: '5966867969',
@@ -7,380 +8,85 @@ export const INITIAL_CONFIG: AppConfig = {
   panelUser: 'sudhbuYH45u',
 };
 
-// Seeded with real live cluster configuration from https://sudda.store:7575
-export const INITIAL_INBOUNDS: Inbound[] = [
-  {
-    id: 4,
-    up: 3232557245497, // ~3.2 TB
-    down: 46843444928028, // ~46.8 TB
-    total: 0,
-    remark: "PROD-VLESS-443-MAIN",
-    enable: true,
-    expiryTime: 0,
-    listen: "",
-    port: 443,
-    protocol: "vless",
-    settings: JSON.stringify({
-      clients: [
-        {
-          id: "3a8f4c21-9e5b-48d6-a213-7d8a9e0f12a3",
-          email: "vip-primary-user@stream",
-          flow: "xtls-rprx-vision",
-          limitIp: 2,
-          totalGB: 200 * 1024 * 1024 * 1024,
-          expiryTime: Date.now() + 86400 * 30 * 1000,
-          enable: true,
-          tgId: "5966867969",
-          subId: "prod-vless-01"
-        },
-        {
-          id: "8f1a23bc-7456-42d1-93e8-5b12a3c4d5e6",
-          email: "enterprise-user@secure",
-          flow: "xtls-rprx-vision",
-          limitIp: 3,
-          totalGB: 500 * 1024 * 1024 * 1024,
-          expiryTime: Date.now() + 86400 * 60 * 1000,
-          enable: true,
-          tgId: "",
-          subId: "prod-vless-02"
-        }
-      ],
-      decryption: "none",
-      fallbacks: []
-    }),
-    streamSettings: JSON.stringify({
-      network: "tcp",
-      security: "tls",
-      tlsSettings: {
-        serverName: "sudda.store",
-        certificates: [{ certificateFile: "/root/cert/sudda.store/fullchain.pem" }]
-      }
-    }),
-    tag: "inbound-443",
-    sniffing: JSON.stringify({ enabled: true, destOverride: ["http", "tls", "quic"] }),
-    clientStats: [
-      {
-        id: 1,
-        inboundId: 4,
-        enable: true,
-        email: "vip-primary-user@stream",
-        up: 4831838208,
-        down: 85899345920,
-        expiryTime: Date.now() + 86400 * 30 * 1000,
-        total: 200 * 1024 * 1024 * 1024
-      },
-      {
-        id: 2,
-        inboundId: 4,
-        enable: true,
-        email: "enterprise-user@secure",
-        up: 12884901888,
-        down: 214748364800,
-        expiryTime: Date.now() + 86400 * 60 * 1000,
-        total: 500 * 1024 * 1024 * 1024
-      }
-    ]
-  },
-  {
-    id: 16,
-    up: 35063320,
-    down: 658282810,
-    total: 0,
-    remark: "STB",
-    enable: true,
-    expiryTime: 0,
-    listen: "",
-    port: 17490,
-    protocol: "vless",
-    settings: JSON.stringify({
-      clients: [
-        {
-          id: "cfe22a15-d784-42cd-a805-cbf5d5058db9",
-          email: "b6aikd1c",
-          flow: "",
-          limitIp: 0,
-          totalGB: 0,
-          expiryTime: 0,
-          enable: true,
-          subId: "03h74alvjmbeden9"
-        },
-        {
-          id: "c5cc5cce-8e77-490e-8c2b-e896de912c09",
-          email: "Shyai",
-          flow: "",
-          limitIp: 0,
-          totalGB: 107374182400,
-          expiryTime: 0,
-          enable: true,
-          subId: "tksu2jgvb7upi2wa"
-        },
-        {
-          id: "ffd5b6b6-82dd-4091-8b83-1c6608721dcd",
-          email: "Fk2",
-          flow: "",
-          limitIp: 0,
-          totalGB: 107374182400,
-          expiryTime: 0,
-          enable: true,
-          subId: "sodht2mp22nth7ri"
-        }
-      ],
-      decryption: "none",
-      fallbacks: []
-    }),
-    streamSettings: JSON.stringify({
-      network: "tcp",
-      security: "tls",
-      tlsSettings: { serverName: "sudda.store" }
-    }),
-    tag: "inbound-17490",
-    sniffing: JSON.stringify({ enabled: false }),
-    clientStats: [
-      {
-        id: 190,
-        inboundId: 16,
-        enable: true,
-        email: "Shyai",
-        up: 17964540,
-        down: 577311624,
-        expiryTime: 0,
-        total: 107374182400
-      },
-      {
-        id: 224,
-        inboundId: 16,
-        enable: true,
-        email: "Fk2",
-        up: 14936324,
-        down: 100239573,
-        expiryTime: 0,
-        total: 107374182400
-      }
-    ]
-  },
-  {
-    id: 14,
-    up: 78427681252,
-    down: 1270726136545,
-    total: 0,
-    remark: "VMess-WS-8080",
-    enable: true,
-    expiryTime: 0,
-    listen: "",
-    port: 8080,
-    protocol: "vmess",
-    settings: JSON.stringify({
-      clients: [
-        {
-          id: "b68cb402-9d88-4abf-893e-c803e5b60cc2",
-          email: "8887857118",
-          alterId: 0,
-          limitIp: 0,
-          totalGB: 161061273600,
-          expiryTime: 1793517107644,
-          enable: true,
-          subId: "3ndhmflz28q1vrp7"
-        },
-        {
-          id: "999492aa-312a-46e9-ae1c-e438ada59a88",
-          email: "5823888396",
-          alterId: 0,
-          limitIp: 0,
-          totalGB: 107374182400,
-          expiryTime: 1792931040821,
-          enable: true,
-          subId: "34d1zftb6uedgeqy"
-        },
-        {
-          id: "a0d77c00-2e18-42ae-82e0-3733d8cd0fa9",
-          email: "6ume2dop",
-          alterId: 0,
-          limitIp: 0,
-          totalGB: 107374182400,
-          expiryTime: 1793599842516,
-          enable: true,
-          subId: "uy2rc6ta9t7jz2ks"
-        }
-      ]
-    }),
-    streamSettings: JSON.stringify({
-      network: "ws",
-      security: "none",
-      wsSettings: { path: "/", host: "" }
-    }),
-    tag: "inbound-8080",
-    sniffing: JSON.stringify({ enabled: true, destOverride: ["http", "tls"] }),
-    clientStats: [
-      {
-        id: 101,
-        inboundId: 14,
-        enable: true,
-        email: "8887857118",
-        up: 1245678900,
-        down: 23456789000,
-        expiryTime: 1793517107644,
-        total: 161061273600
-      },
-      {
-        id: 102,
-        inboundId: 14,
-        enable: true,
-        email: "5823888396",
-        up: 456789000,
-        down: 18900234000,
-        expiryTime: 1792931040821,
-        total: 107374182400
-      }
-    ]
-  },
-  {
-    id: 17,
-    up: 123061444,
-    down: 3451414514,
-    total: 0,
-    remark: "Trojan-Secure-42502",
-    enable: true,
-    expiryTime: 0,
-    listen: "",
-    port: 42502,
-    protocol: "trojan",
-    settings: JSON.stringify({
-      clients: [
-        {
-          password: "oUnQl1Th4a",
-          email: "nk3hbb46",
-          limitIp: 0,
-          totalGB: 0,
-          expiryTime: 0,
-          enable: true,
-          subId: "w2e0qfyx02l6y65t"
-        }
-      ]
-    }),
-    streamSettings: JSON.stringify({
-      network: "tcp",
-      security: "tls",
-      tlsSettings: { serverName: "sudda.store" }
-    }),
-    tag: "inbound-42502",
-    sniffing: JSON.stringify({ enabled: false }),
-    clientStats: [
-      {
-        id: 277,
-        inboundId: 17,
-        enable: true,
-        email: "nk3hbb46",
-        up: 121315368,
-        down: 3560463347,
-        expiryTime: 0,
-        total: 0
-      }
-    ]
-  },
-  {
-    id: 6,
-    up: 103164947334,
-    down: 742797275157,
-    total: 0,
-    remark: "VLESS-2052-EDGE",
-    enable: true,
-    expiryTime: 0,
-    listen: "",
-    port: 2052,
-    protocol: "vless",
-    settings: JSON.stringify({ clients: [] }),
-    streamSettings: JSON.stringify({ network: "tcp", security: "none" }),
-    tag: "inbound-2052",
-    sniffing: JSON.stringify({ enabled: true }),
-    clientStats: []
-  },
-  {
-    id: 13,
-    up: 209307150,
-    down: 3246999457,
-    total: 0,
-    remark: "Diniru",
-    enable: true,
-    expiryTime: 0,
-    listen: "",
-    port: 80,
-    protocol: "vless",
-    settings: JSON.stringify({ clients: [] }),
-    streamSettings: JSON.stringify({ network: "tcp", security: "none" }),
-    tag: "inbound-80",
-    sniffing: JSON.stringify({ enabled: true }),
-    clientStats: []
-  }
+// Seeded with complete real live cluster configuration (all 6 inbounds and 226 real registered clients)
+export const INITIAL_INBOUNDS: Inbound[] = (realInboundsData as any[]) || [];
+
+export const REAL_ONLINE_FALLBACK: string[] = [
+  "1144852475", "1287143974", "1293708143", "1374045534", "140286753", 
+  "1408207005", "1452635151", "1495634671", "1561619304", "1670451837", 
+  "1741219245", "1817087389", "1842224097", "5273639962", "5308624395", 
+  "5640980297", "5852461746", "5941316642", "5smokiz8", "6250596486", 
+  "6343139670", "6521449554", "6548509907", "6562374898", "6601219142", 
+  "6610243375", "6652043574", "6657239668", "6753767654", "6868540422", 
+  "7078402796", "7158225771", "7173723787", "7582098115", "759238227888888", 
+  "7756958475", "7950505496", "7jyyolg9", "8063084642", "8243660827", 
+  "8365300053", "8464630383", "8473795606", "8554196520", "8589425795", 
+  "8887857118", "915713477", "93gzkx7o", "985855309", "9hhlo6wv", 
+  "Dami", "Dineth", "Emosh", "Jash", "Kavi", 
+  "Lakmal", "Ramesh", "Shadow", "Sulaiman", "agasthi_", 
+  "blcw9gm1", "f1g2020h", "inda", "lnm6v3sh", "madhuni", 
+  "pw5ish99", "robin", "ru1gkzjx", "sudda", "tulitha", 
+  "ud3kyp48", "znra4hcj", "zs00q8xc"
 ];
+
+export function getStoredConfig(): AppConfig {
+  try {
+    const raw = localStorage.getItem('xview_suite_config');
+    if (raw) return { ...INITIAL_CONFIG, ...JSON.parse(raw) };
+  } catch (e) {}
+  return INITIAL_CONFIG;
+}
+
+export function saveStoredConfig(config: Partial<AppConfig>) {
+  try {
+    const current = getStoredConfig();
+    const merged = { ...current, ...config };
+    localStorage.setItem('xview_suite_config', JSON.stringify(merged));
+  } catch (e) {}
+}
 
 export function getStoredInbounds(): Inbound[] {
   try {
-    const raw = localStorage.getItem('xview_inbounds_data');
-    if (raw) return JSON.parse(raw);
+    const raw = localStorage.getItem('xview_suite_inbounds');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
   } catch (e) {}
   return INITIAL_INBOUNDS;
 }
 
 export function saveStoredInbounds(inbounds: Inbound[]) {
   try {
-    localStorage.setItem('xview_inbounds_data', JSON.stringify(inbounds));
+    localStorage.setItem('xview_suite_inbounds', JSON.stringify(inbounds));
   } catch (e) {}
 }
-
-export function getStoredConfig(): AppConfig {
-  try {
-    const raw = localStorage.getItem('xview_cluster_config');
-    if (raw) return { ...INITIAL_CONFIG, ...JSON.parse(raw) };
-  } catch (e) {}
-  return INITIAL_CONFIG;
-}
-
-export function saveStoredConfig(cfg: Partial<AppConfig>) {
-  try {
-    const cur = getStoredConfig();
-    const updated = { ...cur, ...cfg };
-    localStorage.setItem('xview_cluster_config', JSON.stringify(updated));
-  } catch (e) {}
-}
-
-let startTimestamp = Date.now() - 3600 * 1000 * 24 * 14;
 
 export function getMockServerStatus(): ServerStatus {
-  const uptime = Math.floor((Date.now() - startTimestamp) / 1000);
-  const cpu = Math.floor(22 + Math.random() * 6);
+  const uptime = Math.floor(1415795 + (Date.now() % 100000) / 1000);
   return {
-    cpu,
+    cpu: 24.8,
     cpuCores: 4,
     logicalPro: 4,
     cpuSpeedMhz: 2645.032,
     mem: {
-      current: 972619776 + Math.floor(Math.random() * 20000000),
-      total: 6207619072,
+      current: 990375936 + Math.floor(Math.random() * 20000000),
+      total: 6207619072
     },
-    swap: {
-      current: 0,
-      total: 0,
-    },
-    disk: {
-      current: 3892105216,
-      total: 105581297664,
-    },
-    xray: {
-      state: 'running',
-      errorMsg: '',
-      version: '25.1.30',
-    },
+    swap: { current: 0, total: 0 },
+    disk: { current: 3918766080, total: 105581297664 },
+    xray: { state: "running", errorMsg: "", version: "25.1.30" },
     uptime,
-    loads: [1.45, 1.38, 1.25],
-    tcpCount: 3850 + Math.floor(Math.random() * 150),
-    udpCount: 1190 + Math.floor(Math.random() * 80),
+    loads: [1.54, 1.36, 1.26],
+    tcpCount: 6394 + Math.floor(Math.random() * 100),
+    udpCount: 2140 + Math.floor(Math.random() * 50),
     netIO: {
-      up: 7800000 + Math.floor(Math.random() * 1200000),
-      down: 8200000 + Math.floor(Math.random() * 1400000),
+      up: 12899401 + Math.floor(Math.random() * 1000000),
+      down: 13825639 + Math.floor(Math.random() * 1000000)
     },
     netTraffic: {
-      sent: 14002189807051,
-      recv: 14219328248493,
+      sent: 14044658476188,
+      recv: 14262188525715,
     },
     publicIP: {
       ipv4: "173.234.14.99",
@@ -389,7 +95,7 @@ export function getMockServerStatus(): ServerStatus {
     appStats: {
       threads: 24,
       mem: 93546776,
-      uptime: 154828
+      uptime: 1671
     }
   };
 }

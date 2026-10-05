@@ -7,11 +7,23 @@ import {
   getMockServerStatus,
   lookupMockClient,
   INITIAL_CONFIG,
+  REAL_ONLINE_FALLBACK,
 } from './mockCluster';
 
 async function safeFetchJson<T>(url: string, options?: RequestInit, fallback?: () => T): Promise<T> {
   try {
-    const res = await fetch(url, options);
+    const cfg = getStoredConfig();
+    const reqHeaders: Record<string, string> = {
+      'Accept': 'application/json',
+      ...(cfg.panelUrl ? { 'x-panel-url': cfg.panelUrl } : {}),
+      ...(cfg.panelUser ? { 'x-panel-user': cfg.panelUser } : {}),
+      ...((options?.headers as Record<string, string>) || {}),
+    };
+
+    const res = await fetch(url, {
+      ...options,
+      headers: reqHeaders,
+    });
     const contentType = res.headers.get('content-type') || '';
     if (res.ok && contentType.includes('application/json')) {
       return await res.json();
@@ -27,16 +39,27 @@ async function safeFetchJson<T>(url: string, options?: RequestInit, fallback?: (
 }
 
 export const api = {
-  async login(username: string, password: string): Promise<{ success: boolean; message?: string; token?: string; user?: any }> {
+  async login(username: string, password: string, panelUrl?: string): Promise<{ success: boolean; message?: string; token?: string; user?: any }> {
     try {
+      const cfg = getStoredConfig();
+      const targetUrl = panelUrl || cfg.panelUrl || 'https://sudda.store:7575/yhSuh09ZWZ0RTNT';
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-panel-url': targetUrl,
+          'x-panel-user': username,
+          'x-panel-pass': password,
+        },
+        body: JSON.stringify({ username, password, panelUrl: targetUrl }),
       });
       const contentType = res.headers.get('content-type') || '';
       if (res.ok && contentType.includes('application/json')) {
-        return await res.json();
+        const json = await res.json();
+        if (json.success && json.user) {
+          saveStoredConfig({ panelUrl: targetUrl, panelUser: username });
+        }
+        return json;
       }
     } catch (e) {
       // Backend unreachable or static hosting
@@ -46,6 +69,7 @@ export const api = {
     const cfg = getStoredConfig();
     const validUser = cfg.panelUser || 'sudhbuYH45u';
     const validPass = 'sudhbuYH45u';
+    const targetUrl = panelUrl || cfg.panelUrl || 'https://sudda.store:7575/yhSuh09ZWZ0RTNT';
 
     if (
       (username === validUser && password === validPass) ||
@@ -55,8 +79,9 @@ export const api = {
       const token = `xview-token-${Math.random().toString(36).slice(2, 10)}`;
       const user = {
         username,
-        panelUrl: cfg.panelUrl || 'https://sudda.store:7575/yhSuh09ZWZ0RTNT',
+        panelUrl: targetUrl,
       };
+      saveStoredConfig({ panelUrl: targetUrl, panelUser: username });
       return {
         success: true,
         message: 'Authenticated successfully',
@@ -127,11 +152,24 @@ export const api = {
       '/api/panel/onlines',
       undefined,
       () => {
+        const inbounds = getStoredInbounds();
+        const activeEmails = new Set<string>();
+        inbounds.forEach((ib) => {
+          if (Array.isArray(ib.clientStats)) {
+            ib.clientStats.forEach((cs) => {
+              if (cs.enable !== false && ((cs.up || 0) + (cs.down || 0) > 0)) {
+                activeEmails.add(cs.email);
+              }
+            });
+          }
+        });
+        const list = Array.from(activeEmails);
+        const finalOnlines = list.length > 0 ? list : REAL_ONLINE_FALLBACK;
         return {
           success: true,
           isLive: false,
-          onlines: ['b6aikd1c', 'Shyai', 'Fk2'],
-          count: 3,
+          onlines: finalOnlines,
+          count: finalOnlines.length,
         };
       }
     );

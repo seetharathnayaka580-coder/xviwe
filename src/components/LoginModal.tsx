@@ -1,28 +1,40 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Shield, KeyRound, Eye, EyeOff, Lock, Server, ArrowRight, 
-  AlertCircle, CheckCircle2, Radio, Wifi, Globe, Check, ShieldCheck
+  AlertCircle, CheckCircle2, Radio, Wifi, Globe, Check, ShieldCheck, Settings2, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { api } from '../services/api';
+import { getStoredConfig, saveStoredConfig } from '../services/mockCluster';
 
 interface Props {
-  onSuccess: (user: { username: string }) => void;
+  onSuccess: (user: { username: string; panelUrl?: string }) => void;
 }
 
 export function LoginModal({ onSuccess }: Props) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('sudhbuYH45u');
+  const [password, setPassword] = useState('sudhbuYH45u');
+  const [panelUrl, setPanelUrl] = useState('https://sudda.store:7575/yhSuh09ZWZ0RTNT');
+  const [showCustomDomain, setShowCustomDomain] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pingTesting, setPingTesting] = useState(false);
   const [pingResult, setPingResult] = useState<number | null>(92);
 
+  useEffect(() => {
+    const cfg = getStoredConfig();
+    if (cfg.panelUrl) setPanelUrl(cfg.panelUrl);
+    if (cfg.panelUser) setUsername(cfg.panelUser);
+  }, []);
+
   const testPing = async () => {
     setPingTesting(true);
     const start = performance.now();
     try {
-      await fetch('/api/panel/status', { method: 'GET' }).catch(() => null);
+      await fetch('/api/panel/status', { 
+        method: 'GET',
+        headers: { 'x-panel-url': panelUrl }
+      }).catch(() => null);
       const elapsed = Math.round(performance.now() - start);
       setPingResult(elapsed > 0 ? elapsed : 88);
     } catch {
@@ -32,7 +44,7 @@ export function LoginModal({ onSuccess }: Props) {
     }
   };
 
-  const doLogin = async (userVal: string, passVal: string) => {
+  const doLogin = async (userVal: string, passVal: string, targetUrlVal: string) => {
     if (!userVal.trim() || !passVal.trim()) {
       setError('Operator credentials required to access VPN Gateway');
       return;
@@ -41,21 +53,25 @@ export function LoginModal({ onSuccess }: Props) {
     setLoading(true);
     setError(null);
 
+    const cleanPanelUrl = targetUrlVal.trim() || 'https://sudda.store:7575/yhSuh09ZWZ0RTNT';
+
     try {
-      const res = await api.login(userVal.trim(), passVal.trim());
+      const res = await api.login(userVal.trim(), passVal.trim(), cleanPanelUrl);
       if (res.success) {
         localStorage.setItem('xview_auth_token', res.token || `xview-${Date.now()}`);
-        localStorage.setItem('xview_auth_user', JSON.stringify(res.user || { username: userVal }));
-        onSuccess(res.user || { username: userVal });
+        localStorage.setItem('xview_auth_user', JSON.stringify(res.user || { username: userVal, panelUrl: cleanPanelUrl }));
+        saveStoredConfig({ panelUrl: cleanPanelUrl, panelUser: userVal.trim() });
+        onSuccess(res.user || { username: userVal, panelUrl: cleanPanelUrl });
       } else {
         setError(res.message || 'Access Denied: Invalid Credentials');
       }
     } catch {
       if (userVal === 'sudhbuYH45u' || passVal === 'sudhbuYH45u' || userVal === passVal) {
         const token = `xview-local-${Date.now()}`;
-        const u = { username: userVal, panelUrl: 'https://sudda.store:7575/yhSuh09ZWZ0RTNT' };
+        const u = { username: userVal, panelUrl: cleanPanelUrl };
         localStorage.setItem('xview_auth_token', token);
         localStorage.setItem('xview_auth_user', JSON.stringify(u));
+        saveStoredConfig({ panelUrl: cleanPanelUrl, panelUser: userVal.trim() });
         onSuccess(u);
       } else {
         setError('Authentication handshake failed. Verify server passkey.');
@@ -67,15 +83,26 @@ export function LoginModal({ onSuccess }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    doLogin(username, password);
+    doLogin(username, password, panelUrl);
   };
 
   const fillQuickAccess = () => {
     setUsername('sudhbuYH45u');
     setPassword('sudhbuYH45u');
+    const defaultUrl = 'https://sudda.store:7575/yhSuh09ZWZ0RTNT';
+    setPanelUrl(defaultUrl);
     setError(null);
-    doLogin('sudhbuYH45u', 'sudhbuYH45u');
+    doLogin('sudhbuYH45u', 'sudhbuYH45u', defaultUrl);
   };
+
+  // Host display
+  let hostDisplay = 'sudda.store:7575';
+  try {
+    const parsed = new URL(panelUrl);
+    hostDisplay = parsed.host || panelUrl;
+  } catch {
+    hostDisplay = panelUrl.replace(/^https?:\/\//, '').split('/')[0] || 'sudda.store:7575';
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -113,30 +140,61 @@ export function LoginModal({ onSuccess }: Props) {
           </div>
 
           {/* Real VPN Node Selector Card */}
-          <div className="mt-6 p-3.5 rounded-2xl bg-[#060a14] border border-slate-800 shadow-inner flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600/30 to-emerald-500/30 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shrink-0">
-                <Globe className="w-4 h-4" />
-              </div>
-              <div className="truncate">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-white font-semibold text-xs">🇸🇬 Singapore Fast Node</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="mt-6 p-3.5 rounded-2xl bg-[#060a14] border border-slate-800 shadow-inner space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600/30 to-emerald-500/30 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shrink-0">
+                  <Globe className="w-4 h-4" />
                 </div>
-                <span className="text-slate-400 text-[11px] font-mono block truncate">sudda.store:7575</span>
+                <div className="truncate">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-white font-semibold text-xs">🇸🇬 Singapore Gateway</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  </div>
+                  <span className="text-cyan-300 text-[11px] font-mono block truncate">{hostDisplay}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={testPing}
+                  disabled={pingTesting}
+                  title="Test Server Latency"
+                  className="btn-real btn-real-secondary px-2.5 py-1 rounded-lg text-xs gap-1 border-slate-700 text-cyan-300"
+                >
+                  <Radio className={`w-3 h-3 text-cyan-400 ${pingTesting ? 'animate-spin' : ''}`} />
+                  <span className="font-mono">{pingResult ? `${pingResult}ms` : 'Ping'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomDomain(!showCustomDomain)}
+                  title="Configure Custom Domain / Panel Endpoint"
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                >
+                  <Settings2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={testPing}
-              disabled={pingTesting}
-              title="Test Server Latency"
-              className="btn-real btn-real-secondary px-2.5 py-1 rounded-lg text-xs gap-1 border-slate-700 text-cyan-300"
-            >
-              <Radio className={`w-3 h-3 text-cyan-400 ${pingTesting ? 'animate-spin' : ''}`} />
-              <span className="font-mono">{pingResult ? `${pingResult}ms` : 'Ping'}</span>
-            </button>
+            {/* Custom Domain Input Dropdown */}
+            {showCustomDomain && (
+              <div className="pt-2 border-t border-slate-800 space-y-1.5 animate-in fade-in">
+                <label className="block text-[11px] font-semibold text-slate-300">
+                  Custom Domain / 3x-UI Endpoint URL
+                </label>
+                <input
+                  type="text"
+                  value={panelUrl}
+                  onChange={(e) => setPanelUrl(e.target.value)}
+                  placeholder="https://your-domain.com:7575/token"
+                  className="w-full bg-[#050812] border border-cyan-500/40 rounded-xl px-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-400 font-mono shadow-inner"
+                />
+                <span className="text-[10px] text-slate-400 block font-mono">
+                  Custom domain panel will be authenticated directly for live client sync.
+                </span>
+              </div>
+            )}
           </div>
 
           {error && (

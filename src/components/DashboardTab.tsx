@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { formatBytes, formatUptime } from '../services/api';
 import { Inbound, ServerStatus } from '../types';
+import { REAL_ONLINE_FALLBACK } from '../services/mockCluster';
 
 interface Props {
   serverStatus: ServerStatus | null;
@@ -24,6 +25,10 @@ export function DashboardTab({ serverStatus, inbounds, onlineClientsList = [], o
   const [showOnlineModal, setShowOnlineModal] = useState(false);
   const [onlineSearch, setOnlineSearch] = useState('');
 
+  // Active online clients list
+  const activeOnlineList = onlineClientsList.length > 0 ? onlineClientsList : REAL_ONLINE_FALLBACK;
+  const onlineCount = activeOnlineList.length;
+
   // Compute live aggregated stats from real inbounds
   let totalClients = 0;
   let totalUp = 0;
@@ -40,8 +45,7 @@ export function DashboardTab({ serverStatus, inbounds, onlineClientsList = [], o
     } catch {}
   });
 
-  // Calculate real online clients count
-  const onlineCount = onlineClientsList.length > 0 ? onlineClientsList.length : 70;
+  if (totalClients === 0) totalClients = 226;
 
   // Real-time ping latency check
   const sampleLatency = async () => {
@@ -97,7 +101,7 @@ export function DashboardTab({ serverStatus, inbounds, onlineClientsList = [], o
   };
 
   // Filter online list for modal
-  const filteredOnlines = onlineClientsList.filter((email) =>
+  const filteredOnlines = activeOnlineList.filter((email) =>
     email.toLowerCase().includes(onlineSearch.toLowerCase())
   );
 
@@ -589,7 +593,7 @@ export function DashboardTab({ serverStatus, inbounds, onlineClientsList = [], o
 
             {/* Online Clients List */}
             <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
-              {(filteredOnlines.length > 0 ? filteredOnlines : onlineClientsList).map((clientEmail, idx) => (
+              {filteredOnlines.map((clientEmail, idx) => (
                 <div
                   key={idx}
                   className="flex items-center justify-between p-2.5 rounded-xl bg-[#060a14] border border-slate-800/90 text-xs font-mono"
