@@ -1,0 +1,6 @@
+{
+  "name": "X-VIWE SUITE",
+  "description": "3x-UI network management dashboard, server status monitor, client subscription lifecycle, and Cloudflare Telegram Bot session manager.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
