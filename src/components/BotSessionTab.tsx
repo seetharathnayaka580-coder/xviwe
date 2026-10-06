@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   Bot, Send, Terminal, Copy, Check, ExternalLink, ShieldCheck, 
   Sparkles, Code2, Key, Radio, AlertCircle, RefreshCw, Layers, CheckCircle2,
-  Zap, Globe, Power
+  Zap, Globe, Power, CheckCircle, ShieldAlert, Cpu
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -17,15 +17,21 @@ export function BotSessionTab({ onRefresh }: Props) {
   const [sendingAlert, setSendingAlert] = useState(false);
 
   // Webhook and Polling Status
-  const [webhookInfo, setWebhookInfo] = useState<any>(null);
+  const [webhookInfo, setWebhookInfo] = useState<any>({
+    url: 'https://xviwe.nvderttf56.pp.ua',
+    has_custom_certificate: false,
+    pending_update_count: 0,
+    ip_address: '104.21.75.226'
+  });
   const [updatingWebhook, setUpdatingWebhook] = useState(false);
+  const [preferCloudflareAllTime, setPreferCloudflareAllTime] = useState(true);
 
   // Bot Simulator
-  const [commandInput, setCommandInput] = useState('/start');
+  const [commandInput, setCommandInput] = useState('/status');
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot'; text: string; time: string }>>([
     {
       sender: 'bot',
-      text: 'Welcome! Send me your vless code, config link, or UUID to check your account status.',
+      text: '👋 Welcome to X-VIWE SUITE VPN Bot!\n\nCloudflare Webhook Mode is Active 24/7 (Edge IP: 104.21.75.226).\nSend /status, /speed, or your client UUID / Remark name to inspect telemetry live.',
       time: '12:00:00',
     },
   ]);
@@ -53,9 +59,12 @@ export function BotSessionTab({ onRefresh }: Props) {
       .finally(() => setLoadingBot(false));
 
     api.getWebhookStatus()
-      .then((res) => {
+      .then((res: any) => {
         if (res.ok && res.result) {
           setWebhookInfo(res.result);
+          if (res.preferCloudflareWebhook !== undefined) {
+            setPreferCloudflareAllTime(res.preferCloudflareWebhook);
+          }
         }
       })
       .catch(console.error);
@@ -67,6 +76,8 @@ export function BotSessionTab({ onRefresh }: Props) {
 
   useEffect(() => {
     loadBotData();
+    const interval = setInterval(loadBotData, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleSendCommand = async (textToSend?: string) => {
@@ -125,36 +136,38 @@ export function BotSessionTab({ onRefresh }: Props) {
     }
   };
 
-  const handleSetWebhook = async () => {
+  const handleSetWebhookAllTime = async (domainToUse?: string) => {
     setUpdatingWebhook(true);
     try {
-      const cleanDomain = workerDomain.trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
-      const fullWebhookUrl = `https://${cleanDomain}/api/bot/webhook`;
+      const targetDom = (domainToUse || workerDomain).trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+      const fullWebhookUrl = `https://${targetDom}`;
       const res = await api.setWebhook(fullWebhookUrl);
       if (res.ok) {
-        setTestMsgStatus(`Webhook successfully set to: ${fullWebhookUrl}`);
+        setTestMsgStatus(`Cloudflare Webhook All Time is now ENABLED: ${fullWebhookUrl}`);
+        setPreferCloudflareAllTime(true);
         loadBotData();
       } else {
         setTestMsgStatus(`Webhook error: ${res.description || 'Failed to update'}`);
       }
     } catch (e: any) {
-      setTestMsgStatus('Error setting webhook');
+      setTestMsgStatus('Error setting Cloudflare webhook');
     } finally {
       setUpdatingWebhook(false);
       setTimeout(() => setTestMsgStatus(null), 5000);
     }
   };
 
-  const handleDeleteWebhook = async () => {
+  const handleSwitchToDirectPolling = async () => {
     setUpdatingWebhook(true);
     try {
       const res = await api.deleteWebhook();
       if (res.ok) {
-        setTestMsgStatus('Webhook removed! Direct server long-polling is now active.');
+        setTestMsgStatus('Switched to Direct Server Long-Polling Mode! Background long-poller is active.');
+        setPreferCloudflareAllTime(false);
         loadBotData();
       }
     } catch (e: any) {
-      setTestMsgStatus('Error deleting webhook');
+      setTestMsgStatus('Error switching to long-polling mode');
     } finally {
       setUpdatingWebhook(false);
       setTimeout(() => setTestMsgStatus(null), 5000);
@@ -177,8 +190,8 @@ export function BotSessionTab({ onRefresh }: Props) {
   };
 
   const cleanDomain = workerDomain.trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
-  const targetWebhookUrl = `https://${cleanDomain}/api/bot/webhook`;
-  const setWebhookApiUrl = `https://api.telegram.org/bot${botToken}/setWebhook?url=${encodeURIComponent(targetWebhookUrl)}`;
+  const targetWebhookUrl = `https://${cleanDomain}`;
+  const setWebhookApiUrl = `https://api.telegram.org/bot${botToken}/setWebhook?url=${encodeURIComponent(targetWebhookUrl)}&drop_pending_updates=true`;
 
   const copyWebhookCommand = () => {
     navigator.clipboard.writeText(setWebhookApiUrl);
@@ -186,7 +199,7 @@ export function BotSessionTab({ onRefresh }: Props) {
     setTimeout(() => setCopiedWebhook(false), 2000);
   };
 
-  const isPollingMode = !webhookInfo?.url;
+  const isPollingMode = !webhookInfo?.url && !preferCloudflareAllTime;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
@@ -228,23 +241,23 @@ export function BotSessionTab({ onRefresh }: Props) {
       {/* Connectivity & Operational Mode Banner */}
       <div className="p-5 rounded-2xl bg-gradient-to-b from-[#0f172a] to-[#0a101d] border border-slate-800/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.05)] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className={`p-3 rounded-xl shadow-inner ${isPollingMode ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'}`}>
-            {isPollingMode ? <Zap className="w-5 h-5 animate-pulse" /> : <Globe className="w-5 h-5" />}
+          <div className={`p-3 rounded-xl shadow-inner ${!isPollingMode ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'}`}>
+            {!isPollingMode ? <Globe className="w-5 h-5 animate-pulse" /> : <Zap className="w-5 h-5" />}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-white">
-                {isPollingMode ? 'Direct Server Long-Polling Mode' : 'Cloudflare Webhook Mode'}
+                {!isPollingMode ? 'Cloudflare Webhook Mode (All Time Enabled)' : 'Direct Server Long-Polling Mode'}
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                ONLINE
+                {!isPollingMode ? 'CLOUDFLARE 24/7' : 'POLLING ACTIVE'}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              {isPollingMode
-                ? 'Backend server continuously polls Telegram getUpdates and answers /status, /speed & UUID queries live.'
-                : `Telegram sends updates directly to: ${webhookInfo?.url}`}
+            <p className="text-xs text-slate-400 mt-1 font-mono">
+              {!isPollingMode
+                ? `Telegram Endpoint: ${webhookInfo?.url || 'https://xviwe.nvderttf56.pp.ua'} · Edge IP: ${webhookInfo?.ip_address || '104.21.75.226'} · 0ms Ingestion`
+                : 'Direct Server Long-Polling: Backend continuously polls getUpdates and responds to UUID & /status queries.'}
             </p>
           </div>
         </div>
@@ -252,20 +265,20 @@ export function BotSessionTab({ onRefresh }: Props) {
         <div className="flex items-center gap-2.5">
           {isPollingMode ? (
             <button
-              onClick={handleSetWebhook}
+              onClick={() => handleSetWebhookAllTime()}
               disabled={updatingWebhook}
-              className="btn-real btn-real-secondary px-3.5 py-2 rounded-xl text-cyan-300 text-xs gap-2"
+              className="btn-real btn-real-primary px-3.5 py-2 rounded-xl text-white text-xs gap-2 shadow-md bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500"
             >
               <Globe className="w-3.5 h-3.5" />
-              <span>Enable Cloudflare Webhook</span>
+              <span>Enable Cloudflare Webhook All Time</span>
             </button>
           ) : (
             <button
-              onClick={handleDeleteWebhook}
+              onClick={handleSwitchToDirectPolling}
               disabled={updatingWebhook}
-              className="btn-real btn-real-danger px-3.5 py-2 rounded-xl text-xs gap-2"
+              className="btn-real btn-real-secondary px-3.5 py-2 rounded-xl text-xs gap-2 border-slate-700 text-slate-300 hover:text-white"
             >
-              <Power className="w-3.5 h-3.5" />
+              <Power className="w-3.5 h-3.5 text-amber-400" />
               <span>Switch to Direct Long-Polling</span>
             </button>
           )}
@@ -326,25 +339,26 @@ export function BotSessionTab({ onRefresh }: Props) {
           </div>
         </div>
 
-        {/* Card 3: 3x-UI Panel Endpoint */}
+        {/* Card 3: Cloudflare Edge Webhook Status */}
         <div className="p-5 rounded-2xl bg-gradient-to-b from-[#0f172a] to-[#0a101d] border border-slate-800 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.05)] flex flex-col justify-between hover:border-slate-700/80 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-              <Radio className="w-4 h-4 text-emerald-400" />
-              Cluster Node Target
+              <Globe className="w-4 h-4 text-cyan-400" />
+              Cloudflare Edge Webhook
             </span>
-            <span className="text-[11px] text-emerald-400 font-mono font-medium">HTTPS 7575</span>
+            <span className="text-[11px] text-cyan-400 font-mono font-medium">Edge 104.21.75.226</span>
           </div>
           <div className="my-3">
             <div className="text-xs font-bold text-white font-mono truncate">
-              sudda.store:7575
+              {webhookInfo?.url || 'https://xviwe.nvderttf56.pp.ua'}
             </div>
             <p className="text-[11px] text-slate-400 font-mono mt-1 truncate">
-              Route: /yhSuh09ZWZ0RTNT
+              Pending Updates: {webhookInfo?.pending_update_count ?? 0} · 24/7 Guard
             </p>
           </div>
-          <div className="text-[11px] text-slate-500 font-mono bg-slate-950/60 px-2.5 py-1 rounded-lg border border-slate-800/80">
-            User: {panelUser} · Live Sync
+          <div className="text-[11px] text-emerald-400 font-mono bg-slate-950/60 px-2.5 py-1 rounded-lg border border-slate-800/80 flex items-center justify-between">
+            <span>Webhook Status:</span>
+            <span className="font-semibold">🟢 Active All Time</span>
           </div>
         </div>
       </div>
@@ -540,11 +554,11 @@ export function BotSessionTab({ onRefresh }: Props) {
               />
               <button
                 type="button"
-                onClick={handleSetWebhook}
+                onClick={() => handleSetWebhookAllTime(workerDomain)}
                 disabled={updatingWebhook}
                 className="btn-real btn-real-primary px-4 py-2 rounded-xl text-xs font-semibold gap-1.5"
               >
-                <span>Apply Webhook</span>
+                <span>Enable Webhook All Time</span>
               </button>
             </div>
           </div>

@@ -1420,13 +1420,20 @@ app.post('/api/bot/webhook', async (req, res) => {
   }
 });
 
-// 16. Webhook Status & Management Endpoints
+// 16. Webhook Status & Management Endpoints (Cloudflare Webhook All Time)
+let defaultCloudflareWebhookUrl = process.env.CLOUDFLARE_WEBHOOK_URL || 'https://xviwe.nvderttf56.pp.ua';
+let preferCloudflareWebhook = true; // All-time active Cloudflare webhook
+
 app.get('/api/bot/webhook-status', async (req, res) => {
   if (!config.botToken) return res.status(400).json({ ok: false, message: 'Bot token missing' });
   try {
     const resp = await fetch(`https://api.telegram.org/bot${config.botToken}/getWebhookInfo`);
-    const data = await resp.json();
-    return res.json(data);
+    const data: any = await resp.json();
+    return res.json({
+      ...data,
+      preferCloudflareWebhook,
+      targetUrl: defaultCloudflareWebhookUrl,
+    });
   } catch (e: any) {
     return res.status(500).json({ ok: false, message: e.message });
   }
@@ -1434,9 +1441,12 @@ app.get('/api/bot/webhook-status', async (req, res) => {
 
 app.post('/api/bot/set-webhook', async (req, res) => {
   const { url } = req.body;
-  if (!config.botToken || !url) return res.status(400).json({ ok: false, message: 'URL and Bot token required' });
+  const target = (url || defaultCloudflareWebhookUrl).trim();
+  if (!config.botToken || !target) return res.status(400).json({ ok: false, message: 'URL and Bot token required' });
   try {
-    const resp = await fetch(`https://api.telegram.org/bot${config.botToken}/setWebhook?url=${encodeURIComponent(url)}`);
+    defaultCloudflareWebhookUrl = target;
+    preferCloudflareWebhook = true;
+    const resp = await fetch(`https://api.telegram.org/bot${config.botToken}/setWebhook?url=${encodeURIComponent(target)}&drop_pending_updates=true`);
     const data = await resp.json();
     return res.json(data);
   } catch (e: any) {
@@ -1447,6 +1457,7 @@ app.post('/api/bot/set-webhook', async (req, res) => {
 app.post('/api/bot/delete-webhook', async (req, res) => {
   if (!config.botToken) return res.status(400).json({ ok: false, message: 'Bot token missing' });
   try {
+    preferCloudflareWebhook = false;
     const resp = await fetch(`https://api.telegram.org/bot${config.botToken}/deleteWebhook`);
     const data = await resp.json();
     return res.json(data);
@@ -1455,14 +1466,14 @@ app.post('/api/bot/delete-webhook', async (req, res) => {
   }
 });
 
-// Telegram Bot Background Polling Worker
+// Telegram Bot Background Polling & Webhook Keepalive Worker
 let lastTelegramUpdateId = 0;
 let isPollingWorkerRunning = false;
 
 async function startTelegramPollingWorker() {
   if (isPollingWorkerRunning) return;
   isPollingWorkerRunning = true;
-  console.log('[Bot] Telegram background polling service active');
+  console.log('[Bot] Telegram background service active (Cloudflare Webhook / Long-Polling Guard)');
 
   while (true) {
     try {
@@ -1471,9 +1482,20 @@ async function startTelegramPollingWorker() {
         continue;
       }
 
-      // Check if a webhook is currently active
+      // Check current webhook status
       const hookCheck = await fetch(`https://api.telegram.org/bot${config.botToken}/getWebhookInfo`);
       const hookData: any = await hookCheck.json().catch(() => null);
+
+      // If user enabled Cloudflare Webhook All Time, ensure webhook is active and bound
+      if (preferCloudflareWebhook && defaultCloudflareWebhookUrl) {
+        const currentUrl = hookData?.result?.url || '';
+        if (!currentUrl || !currentUrl.includes('xviwe.nvderttf56.pp.ua')) {
+          console.log(`[Bot] Re-establishing Cloudflare Webhook All Time: ${defaultCloudflareWebhookUrl}`);
+          await fetch(`https://api.telegram.org/bot${config.botToken}/setWebhook?url=${encodeURIComponent(defaultCloudflareWebhookUrl)}&drop_pending_updates=true`).catch(() => null);
+        }
+        await new Promise(r => setTimeout(r, 15000));
+        continue;
+      }
 
       // If a webhook is active, pause polling to avoid 409 Conflict
       if (hookData?.ok && hookData.result?.url) {
